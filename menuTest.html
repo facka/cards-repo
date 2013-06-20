@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>jQuery UI Sortable - Display as grid</title>
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+	<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+	<script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+	<script src="Menu.js"></script>
+	<link rel="stylesheet" href="http://jqueryui.com/jquery-wp-content/themes/jqueryui.com/style.css" />
+	<style>
+		
+	</style>
+	<script>
+		/*var Menu = function() {
+			var animationFinished = true;
+			var mouseIn = false;
+			var collapsed = true;
+				
+			var expand = function() {
+				collapsed = false;
+				addBorder();
+				if (animationFinished) {
+					animationFinished = false;
+					$("#menu").animate({
+						opacity: 1,
+						height: "300px",
+						width: "400px"
+						}, 250, function() {
+							animationFinished = true;
+						});
+				}
+			};	
+			
+			
+	
+			var collapse = function() {
+				collapsed = true;
+				if (animationFinished) {
+					animationFinished = false;
+					$("#menu").animate({
+						opacity: 0.25,
+						height: "0px",
+						width: "400px"
+						}, 250, function() {
+							animationFinished = true;
+							removeBorder();
+						});
+				}
+			};
+			
+			var removeBorder = function() {
+				$("#menu").css({'border-radius': '0px', 'border':'0px','box-shadow': '0px 0px 0px #AAAAAA'});
+			};
+			
+			var addBorder = function() {
+				$("#menu").css({'border-radius': '5px', 'border':'1px solid #a1a1a1','box-shadow': '10px 10px 7px #AAAAAA'});
+			};
+				
+			var initComponents = function() {
+				$("body").append(
+    				$("<div id='menuContainer' align='center' style='text-align:center; position: absolute; top: 0px; width: 100%'></div>").append(
+					    $("<div id='menuButton' style='margin: auto; width: 100px; '>Menu</div>")).append(
+        				$("<div id='menu' style='background-color: silver; width :400px; height:0px; margin: auto;'></div>")
+    				)
+				);
+				
+				setTimeout(function(){
+					$("#menuContainer").mouseenter(function() {
+						mouseIn = true;
+					});
+					$("#menu").mouseleave(function() {
+						mouseIn = false;
+						collapse();
+					});
+					$("#menuButton").click(function() {
+						if (collapsed == true)
+							expand();
+						else
+							collapse();
+					});					
+				},0);
+			};
+			
+			$(document).ready(function(){
+				initComponents();
+			});
+		};*/
+		
+		var menu = new Menu();
+		menu.show();
+		menu.addButton("helloWorld","Hello World!",function() {
+			alert("Hello World!");
+		});		
+		menu.addButton("byeWorld","Bye World!",function() {
+			alert("Bye World!");
+		});	
+		menu.addPlayer({name: "Pepe", points: "100"});
+		menu.addPlayer({name: "Juan", points: "50"});
+		
+		menu.addButton("updatePoints","updatePoints",function() {
+			menu.updatePlayerPoints("Pepe","300");
+		});	
+		</script>
+</head>
+<body>
+	<!--div id="menuContainer" style="left: 300px; position: absolute;">
+		<div id="menuButton" align = "center" style="width:100%">
+			Menu
+		</div>
+		<div id="menu" style="position: relative; background-color: silver;width :200px; height:0px" />
+	</div-->
+</body>
+</html>
+
+
+

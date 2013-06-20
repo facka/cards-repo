@@ -1,0 +1,317 @@
+<!doctype html>
+<html>
+<head>
+	<title>Cards</title>
+	<meta charset="utf-8" />
+	<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+	<script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+	
+		socket = io.connect('http://192.168.1.3');
+
+		socket.on('cardDropped', function (data) {
+			console.log(data);
+			
+		});
+
+	
+		var srcBack = "/cardBack.png";
+		
+		CARD_WIDTH = 90;
+		CARD_HEIGHT = 120;
+		
+		var Card = function(id_,name_,src_,posx_,posy_,color_) {
+			var id = id_;
+			var name = name_;
+			var src = src_;
+			var posx = posx_;
+			var posy = posy_;
+			var color = color_;
+			var width = CARD_WIDTH;
+			var height = CARD_HEIGHT;
+			var up = true;
+			
+			var createCard = function() {
+				var playerLabel = $("<div></div>");
+				playerLabel.attr("id",id+"-playerLabel");
+				var numberBox = $("<div></div>");
+				numberBox.attr("id",id+"-number");
+				var node = $("<div></div>");
+				node.attr("id",id);
+				node.attr("class","card");
+				$("#table").append(node);
+				setTimeout(function(){$("#"+id).append(numberBox);},0);
+				setTimeout(function(){$("#"+id).append(playerLabel);},0);
+				node.draggable({
+      				start: function() {	
+						pushUp();
+      				},
+      				drag: function() {
+						var offset = $(this).offset();
+						posx = offset.left;
+						posy = offset.top;
+      				},
+      				stop: function() {
+						node.effect("pulsate", {times:2}, 500 );
+						socket.emit('cardDropped', { card: {id: id, x : posx, y : posy} });
+        			},
+					containment: "#table",
+					cursor: 'move',
+					scroll: false
+    			});
+				node.click(function () {
+					turnOver();
+				});
+				node.css({"left":posx+"px","top":posy+"px",
+						  "text-align": "center", "box-shadow":"1px 1px 5px #333333", "position": "absolute",
+						  "background-color": "white","border-radius": "5px","border":"1px solid #a1a1a1"});
+				playerLabel.css({"font-family":"georgia,serif","font-weight": "normal","color":"rgb(255,175,0)","font-size": "12px","text-shadow":"2px 2px 2px #FFFF22"});
+				numberBox.css({"font-family":"georgia,serif","font-weight": "normal","color":color,"font-size": "70px","text-align": "center","text-shadow":"2px 2px 10px #AAAAAA"});
+				setTimeout(render,0);
+			};
+			
+			var render = function() {
+				if ($("#"+id).length == 0) {
+					createCard();
+				}
+				$("#"+id).css({"width":width+"px","height":height+"px"});
+				if (up) {
+					//$("#"+id).css({"background-src":src});
+					$("#"+id+"-number").text(name);
+					$("#"+id).css({"background-color":"white"});
+				}
+				else {
+					//$("#"+id).css({"background-src":srcBack});
+					$("#"+id+"-number").text("");
+					$("#"+id).css({"background-color":"silver"});
+				}
+			};
+			
+			this.add = function(id_) {
+				
+			};
+			var turnOver = this.turnOver = function() {	
+				up = up ? false : true;
+				render();
+			};
+			var pushUp = function(){
+				$(".card").css({"z-index":0});
+				$("#"+id).css({"z-index":1});
+			};
+			this.turnDown = function() {
+				up = false;
+				render();
+			};
+			this.turnUp = function() {
+				up = true;
+				render();
+			};
+			this.hide = function() {
+				$("#"+id).css({'display': "none"});
+			};
+			this.show = function() {
+				$("#"+id).css({'display': "inline"});
+			};
+			this.moveTo = function(x,y) {
+				posy = x;
+				posx = y;
+				$("#"+id).css({'top': y, 'left' : x});
+			};
+			this.move = function(offsetX,offsetY) {
+				posy += offsetY;
+				posx += offsetX;
+				$("#"+id).css({'top': posy, 'left' : posx});
+			};
+			this.getId = function() {
+				return id;
+			};
+			this.toString = function() {
+				return id;
+			}
+			render();
+		};
+		
+		var Dealer = function(players, cards, cardsXPlayer){
+			var stack = cards;
+			
+			this.deal = function() {
+				stack = cards;			
+				for (var i = 0; i < cardsXPlayer; ){
+					for (player in players) {
+						var card = this.takeCardFromTop();
+						if (card){
+							players[player].takeCard(card);
+						}
+					}
+					i++;
+				}
+				turnDownCards();
+			};
+			
+			var turnDownCards = function(){
+				for (var i = 0; i < stack.length ; i++) {
+					stack[i].turnDown();
+				}
+			};
+			
+			this.takeCardFromTop = function() {
+				return stack.pop();
+			};
+			
+			this.takeCardById = function(id) {
+				var found = false;
+				var i = 0;
+				var card;
+				while (!found && i < stack.length){
+					card = stack[i];
+					if (card.getId() == id){
+						found = true;
+						card.splice(i,1);
+					}
+					i++;
+				}
+				if (found)
+					return card;
+				else
+					return null;
+			};
+			
+			this.shuffle = function() {
+				for (var i = stack.length - 1; i > 0; i--) {
+					var j = Math.floor(Math.random() * (stack.length));
+					var temp = stack[i];
+					stack[i] = stack[j];
+					stack[j] = temp;
+				}
+				return stack;
+			};
+			this.moveCards = function(x,y,distancex,distancey) {
+				for (var i = 0; i < stack.length ; i++) {
+					stack[i].moveTo((x+(distancex*i)),y+(distancey*i));
+					
+				}
+			};
+			this.toString = function(){
+				var ret;
+				for(card in stack){
+					ret += " "+card.id;
+				}
+				return ret;
+			};			
+		};
+		
+		var Player = function(id_, name_) {
+			var id = id_;
+			var name = name_;
+			var cards = [];
+			
+			this.toString = function() {
+				return name;
+			};
+			this.setName = function(name_){
+				name = name_;
+			};
+			this.getId = function() {
+				return id;
+			};
+			this.takeCard = function(card){
+				cards.push(card);
+			};
+			this.getCards = function() {
+				return cards;
+			};
+			this.moveCards = function(x,y,distance) {
+				for (var i = 0; i < cards.length ; i++) {
+					cards[i].moveTo((x+(distance*i)),y);
+					
+				}
+			};
+			this.turnDownCards = function(){
+				for (var i = 0; i < cards.length ; i++) {
+					cards[i].turnDown();
+				}
+			};
+			this.turnUpCards = function(){
+				for (var i = 0; i < cards.length ; i++) {
+					cards[i].turnUp();
+				}
+			};
+			this.hideCards = function(){
+				for (var i = 0; i < cards.length ; i++) {
+					cards[i].hide();
+				}
+			};
+			this.showCards = function(){
+				for (var i = 0; i < cards.length ; i++) {
+					cards[i].show();
+				}
+			};
+		};
+		
+		var Table = function(id_){
+			var cards = [];
+			var players = [];
+			var dealer;
+			var id = id_;
+			
+			this.init = function() {
+				var rojas = [];
+				var verdes = [];
+				var azules = [];
+				var amarillas = [];
+				for (var i = 1; i <= 21 ; i++){
+					rojas[i-1] = new Card("red"+i,""+i,"/carta1.png",(i*10)+60,200,"#FF0000");
+				}
+				for (var i = 1; i <= 21 ; i++){
+					verdes[i-1] = new Card("green"+i,""+i,"/carta1.png",(i*10)+60,200,"#00FF00");
+				}
+				for (var i = 1; i <= 21 ; i++){
+					azules[i-1] = new Card("blue"+i,""+i,"/carta1.png",(i*10)+60,200,"#0000FF");
+				}
+				for (var i = 1; i <= 21 ; i++){
+					amarillas[i-1] = new Card("yellow"+i,""+i,"/carta1.png",(i*10)+60,200,"#FFFF00");
+				}
+				cards = cards.concat(rojas,verdes,azules,amarillas);
+				
+				var player1 = new Player(1,"Jugador 1");
+				var player2 = new Player(2,"Jugador 2");
+				
+				players = [player1,player2];
+				dealer = new Dealer(players,cards,10);
+				dealer.shuffle();
+				dealer.deal();
+			};
+			this.getPlayers = function(){
+				return players;
+			};
+			this.getDealer = function(){
+				return dealer;
+			};			
+		};
+	
+		$(document).ready(function(){
+  			//$("#repartirButton").click(function(){
+    			window.table = new Table();
+				window.table.init();
+				window.player1 = table.getPlayers()[0];
+				window.player1cards = player1.getCards();
+				player1.moveCards(50,50,10);
+				window.player2 = table.getPlayers()[1];
+				window.player2cards = player2.getCards();
+				player2.moveCards(50,250,10);
+				window.dealer = table.getDealer();
+				dealer.moveCards(screen.availWidth-100, screen.availHeight-130,0,0);
+  			//});
+		});	
+		
+</script>
+</head>
+<body>
+	<div id="menu">
+		<input id="repartirButton" name="Repartir" type="button" value="Repartir" />
+	</div>
+	<div id="table" style="width : 100%; height:768px; border:2px solid #ccc; padding: 10px;background-color:rgb(36, 129, 16)">
+	</div>
+	</body>
+</html>

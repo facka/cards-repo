@@ -1,0 +1,762 @@
+<!doctype html>
+<html>
+<head>
+	<title>Cards</title>
+	<meta charset="utf-8" />
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+	<style>
+		.overDroppable { box-shadow: 0 0 5px rgba(138, 255, 47, 1);
+    				 -webkit-box-shadow: 0 0 5px rgba(138, 255, 47, 1); 
+				     -moz-box-shadow: 0 0 5px rgba(138, 255, 47, 1);
+				     border:1px solid rgba(138,255,47, 0.8);
+				   }
+	</style>
+	<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+	<script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+	<script src="/jquery.ui.touch-punch.min.js"></script>
+	<script src="/Menu.js"></script>
+	<script src="/Messages.js"></script>
+	<!--script src="/socket.io/socket.io.js"></script-->
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+	
+	//----------------------TEST CODE------------------------------
+	/*
+	var Socket = function(){
+		var events = {};
+		
+		//auxiliar vars
+		var stackCards = [{id: "1Amarillo",name : "1", src : "", posx : 0, posy : 0, color : "yellow"},{id: "1Verde",name : "1", src : "", posx : 0, posy : 0, color : "green"}];
+		//-------------
+		
+		this.on = function(eventName, func) {
+			events[eventName] = func;
+		};
+		this.emit =  function(eventName, data) {
+			console.log("Emitting event "+eventName);
+			if ( eventName == "getStackCard"){
+				var card = stackCards.pop();
+				if (card) {
+					runEvent("stackCard", card);
+					if (stackCards.length == 0) {
+						runEvent("stackEmpty",{});	
+					}
+				}
+			}
+			if ( eventName == "deal"){
+				getCards();
+			}
+			if ( eventName == "startGame"){
+				runEvent("startGame",{});
+				runEvent("message","Game Started!");
+			}
+			if ( eventName == "login"){
+				runEvent("successfullLogin",{player: data.player});	
+				runEvent("adminUser",{});
+				runEvent("message","Welcome, "+data.player);
+			}
+			if ( eventName == "message"){
+				runEvent("message",data);
+			}
+			if ( eventName == "cardDroppedOnTable"){
+				runEvent("cardDroppedOnTable",data);
+			}
+			if ( eventName == "cardDroppedOnDeck"){
+				runEvent("cardDroppedOnDeck",data);
+			}
+			if ( eventName == "cardDragged"){
+				runEvent("cardDragged",data);
+			}
+		};
+		var runEvent = this.runEvent = function(eventName, data){
+			if (events[eventName]){
+				events[eventName].apply(this,[data]);
+			}
+		}
+		this.getEvents = function(){
+			var ret = [];
+			var i = 0;
+			for (e in events){
+				ret[i++] = e;
+			}
+			return ret;
+		}
+	}
+	
+	getCards = function() {
+		socket.runEvent(player+"Cards",{cards: [{id: "1Rojo",name : "1", src : "", posx : 0, posy : 0, color : "red"},{id: "1Azul",name : "1", src : "", posx : 0, posy : 0, color : "blue"}]});
+		dealed = true;
+	}
+	
+	getStackCards = function() {
+		socket.runEvent("stackCards",{cards: [{id: "1Amarillo",name : "1", src : "", posx : 0, posy : 0, color : "yellow"},{id: "1Verde",name : "1", src : "", posx : 0, posy : 0, color : "green"}]});
+	}
+	
+	var io = { connect : function(url){
+		return new Socket();
+	}
+	}
+	*/
+	//----------------------END TEST CODE------------------------------
+	
+	CARD_WIDTH = 70;
+	CARD_HEIGHT = 90;
+		
+		var Card = function(id_,name_,src_,posx_,posy_,color_) {
+			var id = id_;
+			var name = name_;
+			var src = src_;
+			var posx = posx_;
+			var posy = posy_;
+			var color = color_;
+			var width = CARD_WIDTH;
+			var height = CARD_HEIGHT;
+			var up = true;
+			var node;
+			
+			var startDrag = function() {
+				pushUp();
+			};
+			
+			var drag = function() {
+				var offset = $(this).offset();
+				posx = offset.left;
+				posy = offset.top;
+			};
+			
+			var dragAndNotify = function() {
+				var offset = $(this).offset();
+				posx = offset.left;
+				posy = offset.top;
+				//socket.emit('cardDragged', { 'id': id, 'name': name, 'src': "", 'posx': offset.left, 'posy': offset.top, 'color': color} );
+			};
+			
+			var stopDrag = function() {
+				if (!node) debugger;
+				node.effect("pulsate", {times:2}, 500 );
+			};
+			
+			var deckDraggable = {
+				start: startDrag,
+				drag: drag,
+				//stop: stopDrag,
+				containment: "#container",
+				cursor: 'move',
+				scroll: false
+			};
+			
+			var tableDraggable = {
+				start: startDrag,
+				drag: dragAndNotify,
+				//stop: stopDrag,
+				containment: "#container",
+				cursor: 'move',
+				scroll: false
+			};
+			
+			var createCard = function() {
+				var playerLabel = $("<div></div>");
+				playerLabel.attr("id",id+"-playerLabel");
+				var numberBox = $("<div></div>");
+				numberBox.attr("id",id+"-number");
+				node = $("<div></div>");
+				node.attr("id",id);
+				node.attr("class","card");
+				$('body').append(node);
+				setTimeout(function(){$("#"+id).append(numberBox);},0);
+				setTimeout(function(){$("#"+id).append(playerLabel);},0);
+				node.draggable(deckDraggable);
+				node.click(function () {
+					turnOver();
+				});
+				node.css({"left":posx+"px","top":posy+"px",
+						  "text-align": "center", "box-shadow":"1px 1px 5px #333333", "position": "absolute",
+						  "background-color": "white","border-radius": "5px","border":"1px solid #a1a1a1"});
+				playerLabel.css({"font-family":"georgia,serif","font-weight": "normal","color":"rgb(255,175,0)","font-size": "8px","text-shadow":"2px 2px 2px #FFFF22"});
+				numberBox.css({"font-family":"georgia,serif","font-weight": "normal","color":color,"font-size": "60px","text-align": "center","text-shadow":"2px 2px 10px #AAAAAA"});
+				setTimeout(render,0);
+			};
+			
+			var render = function() {
+				if ($("#"+id).length == 0) {
+					createCard();
+				}
+				$("#"+id).css({"width":width+"px","height":height+"px"});
+				if (up) {
+					//$("#"+id).css({"background-src":src});
+					$("#"+id+"-number").text(name);
+					$("#"+id).css({"background-color":"white"});
+				}
+				else {
+					//$("#"+id).css({"background-src":srcBack});
+					$("#"+id+"-number").text("");
+					$("#"+id).css({"background-color":"silver"});
+				}
+			};
+			
+			this.add = function(id_) {
+				
+			};
+			var turnOver = this.turnOver = function() {	
+				up = up ? false : true;
+				render();
+			};
+			var pushUp = function(){
+				$(".card").css({"z-index":0});
+				$("#"+id).css({"z-index":1});
+			};
+			this.turnDown = function() {
+				up = false;
+				render();
+			};
+			this.turnUp = function() {
+				up = true;
+				render();
+			};
+			this.hide = function() {
+				$("#"+id).css({'display': "none"});
+			};
+			this.show = function() {
+				$("#"+id).css({'display': "inline"});
+			};
+			this.moveTo = function(x,y) {
+				posy = x;
+				posx = y;
+				$("#"+id).css({'top': y, 'left' : x});
+			};
+			this.move = function(offsetX,offsetY) {
+				posy += offsetY;
+				posx += offsetX;
+				$("#"+id).css({'top': posy, 'left' : posx});
+			};
+			this.getId = function() {
+				return id;
+			};
+			this.getName = function() {
+				return name;
+			};
+			this.getPosition = function() {
+				return {posx: posx, posy:posy};
+			};
+			this.getColor = function() {
+				return color;
+			};
+			var setTableDraggable = this.setTableDraggable = function(){
+				setTimeout(function(){node.draggable(tableDraggable);},0);
+			};
+			var setDeckDraggable = this.setDeckDraggable = function(){
+				setTimeout(function(){node.draggable(deckDraggable);},0);
+			};
+			this.setAsTableCard = function(){
+				if (!node) debugger;
+				setTimeout(function(){
+					node.addClass("tableCard");
+					node.removeClass("deckCard");
+					setTableDraggable();
+					},0);
+			};
+			this.setAsDeckCard = function(){
+				if (!node) debugger;
+				setTimeout(function(){
+					node.addClass("deckCard");
+					node.removeClass("tableCard");
+					setDeckDraggable();
+					},0);
+			};
+			this.drop = function() {
+				setTimeout(function(){
+					stopDrag();
+				},0);
+			};
+			this.toString = function() {
+				return id;
+			};
+			render();
+		};
+	
+	var Hand = function(_posy) {
+		var cards = {};
+		var deckHeight = 150;
+		var posy = _posy;
+		
+		this.addCard = function(card) {
+			cards[card.getId()] = card;
+			card.setAsDeckCard();
+		};
+		
+		this.getCard = function(id) {
+			return cards[id];
+		};
+		
+		this.getCards = function() {
+			return cards;
+		};
+		
+		this.sortCards = function() {
+			var i = 0;
+			var maxWidth = innerWidth - CARD_WIDTH - 40;
+			var maxHeight = deckHeight - CARD_HEIGHT - 20;
+			for (id in cards) {
+				var x = Math.floor(Math.random()*(maxWidth+1) + 20);
+				var y = Math.floor(Math.random()*(maxHeight+1) + 20);
+				cards[id].moveTo(x,posy + y);
+				i++;
+			}
+		};
+		
+		this.removeCard = function(id) {
+			var auxCards = {};
+			for (cardId in cards) {
+				if (cardId != id){
+					auxCards[cardId] = cards[cardId];
+				}
+			}
+			cards = auxCards;
+		};
+		
+		this.contains = function(id) {
+			if (cards[id])
+				return true;
+			return false;				
+		};
+	};
+	
+	var Table = function() {
+		var cards = {};
+		
+		this.addCard = function(card) {
+			cards[card.getId()] = card;
+			card.setAsTableCard();
+		};
+		
+		this.contains = function(id) {
+			if (cards[id])
+				return true;
+			return false;				
+		};
+		
+		this.getCard = function(id) {
+			return cards[id];
+		};
+		
+		this.getCards = function() {
+			return cards;
+		};
+		
+		this.removeCard = function(id) {
+			var auxCards = {};
+			for (cardId in cards) {
+				if (cardId != id){
+					auxCards[cardId] = cards[cardId];
+				}
+			}
+			cards = auxCards;
+		};
+	}
+	
+	var Stack = function(_posy, _posx) {
+		var stackHeight = 140;
+		var stackWidth = 110;
+		var MARGIN = 10;
+		var posy = _posy;
+		var posx = _posx;
+		var node;
+		var cant = 0;
+		var stackCardNode;
+		
+		this.init = function() {
+			node = $("<div></div>");
+			node.attr("id","stack");
+			node.attr("class","stack");
+			$('body').append(node);
+			node.css({'position': "absolute", 'z-index': 0, 'padding' : MARGIN+"px",'left': posx+"px", 'top' : posy+"px",'width': stackWidth+'px', 'height': stackHeight+'px', 'box-shadow': '0 0 5px rgba(30, 100, 13, 1)','background-color':"rgba(36, 129, 16, 0.5)"});
+			node.tooltip({
+				/*position: {
+					my: "center bottom-20",
+					at: "center top",
+					using: function( position, feedback ) {
+						$( this ).css( position );
+						$( "<div>" ).text("Hay "+cant+" cartas.").appendTo( this );
+					}
+				}*/
+				content: function() {
+					return $( "<div>" ).text("Hay "+cant+" cartas.").appendTo( this);;
+				}
+			});
+			stackCardNode = $("<div></div>");
+			stackCardNode.attr("id","stackCard");
+			stackCardNode.css({"width":CARD_WIDTH+"px","height":CARD_HEIGHT+"px",
+						  "box-shadow":"1px 1px 5px #333333", "background-color": "silver","border-radius": "5px","border":"1px solid #a1a1a1"});
+			setTimeout(function(){$("#stack").append(stackCardNode);},0);
+			
+			node.draggable({
+				//start: startDrag,
+				drag: function(){
+					var offset = $(this).offset();
+					move(offset.left, offset.top);	
+				},
+				//stop: stopDrag,
+				containment: "#container",
+				cursor: 'move',
+				scroll: false
+			});
+			node.click(function () {
+				socket.emit('getStackCard', { playerName: player});
+			});
+			node.hide();
+		};
+		
+		this.getCardPosition = function() {
+			return {x : posx+MARGIN, y: posy+MARGIN};
+		};
+		
+		this.setEmpty = function(){
+			stackCardNode.hide();
+		};
+		
+		this.showCards = function(){
+			stackCardNode.show();
+		};
+		
+		this.show = function(){
+			node.show();
+		};
+		
+		this.hide = function(){
+			node.hide();
+		};
+		
+		var move = this.move = function(x,y) {
+			node.css({"left":x, "top" : y});
+			posx = x;
+			posy = y;
+		};
+	};
+	
+	//socket = io.connect('http://192.168.1.3');
+	//socket = io.connect('http://localhost');
+	socket = io.connect('http://facka-cards.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
+	
+	var tableHeight = 500;
+	var deckHeight = 150;
+	var player;
+	var cards = {};
+	var players = [];
+	var hand = new Hand(tableHeight);
+	var table = new Table();
+	var stack = new Stack(20,20);
+	var dealed = false;
+	var messages = "";
+	var messagesComponent;
+	
+	var clear = function() {
+		hand = new Hand(tableHeight);
+		table = new Table();
+		stack = new Stack(20,20);
+		$(".card").remove();
+		stack.hide();
+		dealed = false;
+		cards = {};
+	};
+	
+	var removeCardFromScreen = function(id) {
+		var auxCards = {};
+		for (cardId in cards) {
+			if (cardId != id){
+				auxCards[cardId] = cards[id];
+			}
+		}
+		$("#"+id).remove();
+		cards = auxCards;
+	};
+	
+	var removeCardFromDeck = function(id) {
+		var auxCards = {};
+		for (cardId in cards) {
+			if (cardId != id){
+				auxCards[cardId] = cards[id];
+			}
+		}
+		$("#"+id).remove();
+		cards = auxCards;
+		hand.removeCard(id);
+	};
+	
+	socket.on("cardDragged", function(c){
+		if(table.contains(c.id)) {
+			table.getCard(c.id).moveTo(c.posx,c.posy);
+		}
+		if(hand.contains(c.id)) {
+			hand.getCard(c.id).moveTo(c.posx,c.posy);
+		}
+	});
+	
+	socket.on("cardDroppedOnTable", function(c){
+		console.log("Event From Server: Card dropped on table. id = "+c.id);
+		if(table.contains(c.id)) {
+			console.log("Table contains the card");
+			var card = table.getCard(c.id);
+			card.moveTo(c.posx,c.posy);
+			card.setAsTableCard();
+		}
+		else {//no esta en table
+			var card;
+			if (hand.contains(c.id)) {
+				console.log("Hand contains the card");
+				card = hand.getCard(c.id);
+				card.moveTo(c.posx,c.posy);
+				hand.removeCard(c.id);
+			}
+			else {//no esta ni en la mesa ni en la mano
+				console.log("Neither Hand nor Table contains the card");
+				card = new Card(c.id, c.name, c.src, c.posx, c.posy, c.color);
+				cards[c.id] = card;
+			}
+			table.addCard(card);
+			cards[c.id].drop();
+		}
+	});
+	
+	socket.on("cardDroppedOnDeck", function(c){
+		console.log("Event From Server: Card dropped on deck. id = "+c.id);
+		if (table.contains(c.id)) {
+			console.log("Table contains the card");
+			var card = table.getCard(c.id);
+			table.removeCard(c.id);
+			hand.addCard(card);
+		}
+		else {
+			if (!hand.contains(c.id)) {
+				console.log("Hand does NOT contains the card");
+				var card = new Card(c.id, c.name, c.src, c.posx, c.posy, c.color);
+				hand.addCard(card);
+				cards[c.id] = card;
+			}
+			//la carta esta en la mano, no se hace nada
+		}
+	});
+	
+	socket.on("removeCardFromTable", function(c){
+		removeCardFromScreen(c.id);
+		table.removeCard(c.id);
+		console.log("Removig card "+c.id+" from table");
+	});
+	
+	socket.on('updateUserList', function (data) {
+		console.log(data);
+		$("#playersList").empty();
+		for( i in data.players) {
+			var itemNode = $("<li></li>");
+			itemNode.text(data.players[i]);
+			$("#playersList").append(itemNode);
+		}
+		players.push(data.playerName);
+	});
+	
+	socket.on("successfullLogin", function(d){
+		$("#login-dialog").dialog("close");
+		$("#setup-dialog").dialog("open");
+		player = d.player;
+		socket.on( player+"Cards" , function (data) {
+					console.log("Player cards "+data);
+					var cardsList = data.cards;
+					for (i in cardsList){
+						var c = cardsList[i];
+						var card = new Card(c.id, c.name, c.src, c.posx, c.posy, c.color);
+						hand.addCard(card);
+						cards[c.id] = card;
+					}
+					hand.sortCards();
+					stack.show();
+				});
+	});
+	
+	socket.on("adminUser", function(data){
+		$("#startGameButton").show();
+		$("#gameSelect").show();
+		$("#waitMessage").text("Usted es el administrador del juego. Expere a que los usuarios se conecten");
+		menu.addButton("dealButton","Repartir",function() {
+			socket.emit('deal', {});
+			menu.collapse();
+		});
+		menu.addButton("finishButton","Terminar",function() {
+			socket.emit('finishHand', {});
+		});
+		menu.addButton("newGame","New Game",function() {
+			socket.emit('newGame', {});
+		});
+	});
+	
+	socket.on("wrongUserName", function(data){
+		$("#loginMessage").text("El usuario ya existe.");
+	});
+	
+	socket.on("tableIsFull", function(data){
+		$("#loginMessage").text("Esta mesa está completa.");
+	});
+	
+	socket.on("gameAlreadyStarted", function(data){
+		$("#loginMessage").text("El juego ya inicio.");
+	});
+	
+	socket.on("finishHand", function(data){
+		clear();
+	});
+	
+	socket.on("startGame", function(data){
+		$("#login-dialog").dialog( "close" );
+		$("#setup-dialog").dialog( "close" );
+		players = data.players;
+		for (i in players) {
+			console.log("adding player"+players[i]);
+			menu.addPlayer({name : players[i], points : "0"});
+		}
+		menu.show();
+	});
+
+	socket.on("stackCard", function(c){
+		console.log("Stack card "+c);
+		var pos = stack.getCardPosition();
+		var card = new Card(c.id, c.name, c.src, pos.x, pos.y, c.color);
+		table.addCard(card);
+		cards[c.id] = card;
+	});
+	
+	socket.on("stackEmpty", function(data){
+		stack.setEmpty();
+	});
+	
+	socket.on("playersPoints", function(data){
+		for ( player in data) {
+			console.log("Player: "+ player + ", points:"+data[player]);
+			menu.updatePlayerPoints(player, data[player]);
+		}
+	});
+	
+	var addMessage = function(message) {
+		messages+=message+"\n";
+		$("#messages").text(messages);
+		messagesComponent.addMessage(message);
+	};
+	
+	socket.on("message", function(message){
+		addMessage(message);
+	});
+	
+	$(document).ready(function(){
+		
+		$("#table").droppable({
+			drop: function( event, ui ) {
+				if (ui.draggable[0].id && cards[ui.draggable[0].id]){
+					var card = hand.getCard(ui.draggable[0].id);
+					if (!card) {
+						card = table.getCard(ui.draggable[0].id);
+					}
+					console.log("Emitting cardDroppedOnTable event card.id = "+ui.draggable[0].id);
+					socket.emit('cardDroppedOnTable', { card: { 'id': card.getId(), 'name': card.getName(), 'src': "", 'posx': ui.offset.left, 'posy': ui.offset.top, 'color': card.getColor()}, playerName : player} );
+				}
+			},
+			hoverClass: "overDroppable",
+			//accept: ".deckCard",
+			accept: ".card",
+		});
+		
+		$("#deck").droppable({
+			drop: function( event, ui ) {
+				if (ui.draggable[0].id && cards[ui.draggable[0].id]){
+					var card = cards[ui.draggable[0].id];
+					console.log("Emitting cardDroppedOnDeck event card.id = "+ui.draggable[0].id);
+					socket.emit('cardDroppedOnDeck', {card: { 'id': card.getId(), 'name': card.getName(), 'src': "", 'posx': ui.offset.left, 'posy': ui.offset.top, 'color': card.getColor()}, playerName : player});
+				}
+			},
+			hoverClass: "overDroppable",
+			accept: ".tableCard",
+		});
+		
+		$( "#login-dialog" ).dialog({
+		  autoOpen: false,
+		  height: 300,
+		  width: 350,
+		  modal: true,
+		  buttons: {
+			"Login": function() {
+				var playerName = $("#inputName").val();
+				var playerPassword = $("#inputPassword").val();
+				var data = {
+					player: playerName,
+					password : playerPassword
+				};
+				socket.emit('login', data);
+			}
+		  },
+		  close: function() {
+			$("#inputName").val( "" ).removeClass( "ui-state-error" );
+		  }
+		});
+		
+		$( "#setup-dialog" ).dialog({
+		  autoOpen: false,
+		  height: 300,
+		  width: 350,
+		  modal: true
+		});
+		
+		$("#startGameButton").click(function(){
+			socket.emit('startGame', {game : $("#gameSelect").val(), player : player});
+		}
+		);
+		
+		$( "#login-dialog" ).dialog( "open" );
+		
+		$("#table").css({"width":"100%", "height":tableHeight});
+		$("#deck").css({"width":"100%", "height":deckHeight});
+		
+		stack.init();
+		
+		messagesComponent = new MessagesComponent($("body"),0,-60);
+		messagesComponent.setEnterAction(function(text) {
+			socket.emit('message', player + " dice: " + text);
+		});
+		
+	});
+	
+	menu = new Menu();
+	menu.hide();
+	
+	</script>
+</head>
+<!-- background-color:rgb(36, 129, 16) -->
+<body style="padding: 5px; background-color:rgb(36, 129, 16)">
+	<div id="login-dialog" title="Login">
+		<fieldset style="display: block">
+			<div>
+				<label for="inputName">Name</label>
+				<input type="text" name="name" id="inputName" style="width : 100%"/>
+				<label for="inputPassword">Password</label>
+				<input type="text" name="password" id="inputPassword" style="width : 100%"/>
+			</div>
+			<div id="loginMessage" style="color: rgb(200,50,50)"></div>
+		</fieldset>
+	</div>
+	<div id="setup-dialog" title="Setup">
+		<div>Players:</div>
+		<ul id="playersList">
+		</ul>
+		<select id="gameSelect" style="display:none">
+  			<option value="ElferRaus Master">ElferRaus Master</option>
+			<option value="ElferRaus">ElferRaus</option>
+  			<option value="Phase10">Phase10</option>
+			<option value="Gran Dalmuti">Gran Dalmuti</option>
+		</select>
+		<input id="startGameButton" name="Start" type="button" value="Start" style="display:none"/>
+		<p id="waitMessage">Por favor espere a que el administrador inicie el juego.</p>
+	</div>
+	<div id="container">
+		<div id="table" style="width : 100%; height:500px; z-index: -2;">
+		</div>
+		<!--background-color:rgb(83, 43, 0)-->
+		<div id="deck" style="z-index: -1; width: 100%; height: 150px; box-shadow: 0 0 5px rgba(100, 180, 30, 1)">
+		</div>
+	</div>
+</body>
+</html>
