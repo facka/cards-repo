@@ -434,8 +434,8 @@
 	};
 	
 	//socket = io.connect('http://192.168.1.3');
-	//socket = io.connect('http://localhost');
-	socket = io.connect('http://facka-cards.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
+	socket = io.connect('http://localhost');
+	//socket = io.connect('http://facka-cards.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
 	
 	var tableHeight = 500;
 	var deckHeight = 150;
@@ -733,7 +733,7 @@
 				<label for="inputName">Name</label>
 				<input type="text" name="name" id="inputName" style="width : 100%"/>
 				<label for="inputPassword">Password</label>
-				<input type="text" name="password" id="inputPassword" style="width : 100%"/>
+				<input type="password" name="password" id="inputPassword" style="width : 100%"/>
 			</div>
 			<div id="loginMessage" style="color: rgb(200,50,50)"></div>
 		</fieldset>
