@@ -7,6 +7,7 @@ function Table(){
 	this.MIN_PLAYERS = 2;
 	this.cards = [];
 	this.totalPoints = {};
+	this.lastZIndex = 1000;
 		
 	Table.prototype.init = function(game) {
 		this.dealer = game.dealer;
@@ -37,6 +38,22 @@ function Table(){
 	Table.prototype.addCard = function(card){
 		console.log("Table.addPlayer( "+card.getId()+" )");
 		this.cards.push(card);
+		this.pushUpCard(card);
+	};
+	
+	Table.prototype.getCard = function(id){
+		var found = false;
+		var i = 0;
+		var ret;
+		while (!found && i < this.cards.length){
+			var card = this.cards[i];
+			if (card.getId() == id){
+				found = true;
+				ret = card;
+			}
+			i++;
+		}
+		return ret;
 	};
 	
 	Table.prototype.removeCard = function(id){
@@ -51,6 +68,16 @@ function Table(){
 			}
 			i++;
 		}
+	};
+	
+	Table.prototype.pushUpCard = function(card){
+		if (card) {
+			card.pushUp(this.lastZIndex++);
+		}
+		else {
+			console.log("Table.pushUpCard: card is null!");
+		}
+		return (this.lastZIndex-1);
 	};
 	
 	Table.prototype.getPlayers = function(){
@@ -70,6 +97,10 @@ function Table(){
 	};			
 	Table.prototype.deal = function() {
 		this.players = this.dealer.deal(this.players);
+		for (index in this.players) {
+			var sortedCards = this.dealer.sortCards(this.players[index].getCards());
+			this.players[index].setCards(sortedCards);
+		}
 	};
 	Table.prototype.clean = function() {
 		for (player in this.players) {

@@ -3,22 +3,34 @@ function Dealer(cards_){
 	this.stack = [];
 };
 
+/** Dealer.deal(players) : shuffles and deals the cards of the stack to the players.
+	arguments:
+ 			 players: is an array []
+	returns:
+			players with sorted cards
+**/
 Dealer.prototype.deal = function(players) {
 	this.stack = this.cards;
 	this.shuffle();
 	var cardsXPlayer = (this.stack.length - 20) / players.length;
-	for (var i = 0; i < this.cardsXPlayer; ){
+	for (var i = 0; i < cardsXPlayer; ){
 		for (player in players) {
 			var card = this.takeCardFromTop();
 			if (card){
-				console.log("Player "+players[player]+" received card "+card.getName());
 				players[player].takeCard(card);
 			}
 		}
 		i++;
 	}
-	console.log("Delaer.deal() : players: "+players);
 	return players;
+};
+
+Dealer.prototype.sortCards = function(cards) {
+	return cards.sort(this.cardsComparator);
+};
+
+Dealer.prototype.cardsComparator = function(card1, card2) {
+	return card1.compareTo(card2);
 };
 
 Dealer.prototype.setCards = function(cards) {
