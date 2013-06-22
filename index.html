@@ -61,8 +61,8 @@
 			if ( eventName == "cardDroppedOnTable"){
 				runEvent("cardDroppedOnTable",data);
 			}
-			if ( eventName == "cardDroppedOnDeck"){
-				runEvent("cardDroppedOnDeck",data);
+			if ( eventName == "cardDroppedOnHand"){
+				runEvent("cardDroppedOnHand",data);
 			}
 			if ( eventName == "cardDragged"){
 				runEvent("cardDragged",data);
@@ -101,187 +101,203 @@
 	
 	CARD_WIDTH = 70;
 	CARD_HEIGHT = 90;
+	lastTableZIndex = 1000; //valor inicial del zindex de las cartas de la mano para que al seleccionarlas (click) suban (pushUp)
+	lastHandZIndex = 1000; //valor inicial del zindex de las cartas de la mesa para que al seleccionarlas (click) suban (pushUp)
+	
+	var Card = function(id_,name_,src_,posx_,posy_,color_) {
+		var id = id_;
+		var name = name_;
+		var src = src_;
+		var posx = posx_;
+		var posy = posy_;
+		var color = color_;
+		var width = CARD_WIDTH;
+		var height = CARD_HEIGHT;
+		var up = true;
+		var node;
+		var container;
 		
-		var Card = function(id_,name_,src_,posx_,posy_,color_) {
-			var id = id_;
-			var name = name_;
-			var src = src_;
-			var posx = posx_;
-			var posy = posy_;
-			var color = color_;
-			var width = CARD_WIDTH;
-			var height = CARD_HEIGHT;
-			var up = true;
-			var node;
-			
-			var startDrag = function() {
+		var startDrag = function() {
+			pushUp();
+		};
+		
+		var drag = function() {
+			var offset = $(this).offset();
+			posx = offset.left;
+			posy = offset.top;
+		};
+		
+		var dragAndNotify = function() {
+			var offset = $(this).offset();
+			posx = offset.left;
+			posy = offset.top;
+			//socket.emit('cardDragged', { 'id': id, 'name': name, 'src': "", 'posx': offset.left, 'posy': offset.top, 'color': color} );
+		};
+		
+		var stopDrag = function() {
+			if (!node) debugger;
+			node.effect("pulsate", {times:2}, 500 );
+		};
+		
+		var handDraggable = {
+			start: startDrag,
+			drag: drag,
+			//stop: stopDrag,
+			containment: "#container",
+			cursor: 'move',
+			scroll: false
+		};
+		
+		var tableDraggable = {
+			start: startDrag,
+			drag: dragAndNotify,
+			//stop: stopDrag,
+			containment: "#container",
+			cursor: 'move',
+			scroll: false
+		};
+		
+		var createCard = function() {
+			var playerLabel = $("<div></div>");
+			playerLabel.attr("id",id+"-playerLabel");
+			var numberBox = $("<div></div>");
+			numberBox.attr("id",id+"-number");
+			node = $("<div></div>");
+			node.attr("id",id);
+			node.attr("class","card");
+			$('body').append(node);
+			setTimeout(function(){$("#"+id).append(numberBox);},0);
+			setTimeout(function(){$("#"+id).append(playerLabel);},0);
+			node.draggable(handDraggable);
+			node.click(function () {
 				pushUp();
-			};
-			
-			var drag = function() {
-				var offset = $(this).offset();
-				posx = offset.left;
-				posy = offset.top;
-			};
-			
-			var dragAndNotify = function() {
-				var offset = $(this).offset();
-				posx = offset.left;
-				posy = offset.top;
-				//socket.emit('cardDragged', { 'id': id, 'name': name, 'src': "", 'posx': offset.left, 'posy': offset.top, 'color': color} );
-			};
-			
-			var stopDrag = function() {
-				if (!node) debugger;
-				node.effect("pulsate", {times:2}, 500 );
-			};
-			
-			var deckDraggable = {
-				start: startDrag,
-				drag: drag,
-				//stop: stopDrag,
-				containment: "#container",
-				cursor: 'move',
-				scroll: false
-			};
-			
-			var tableDraggable = {
-				start: startDrag,
-				drag: dragAndNotify,
-				//stop: stopDrag,
-				containment: "#container",
-				cursor: 'move',
-				scroll: false
-			};
-			
-			var createCard = function() {
-				var playerLabel = $("<div></div>");
-				playerLabel.attr("id",id+"-playerLabel");
-				var numberBox = $("<div></div>");
-				numberBox.attr("id",id+"-number");
-				node = $("<div></div>");
-				node.attr("id",id);
-				node.attr("class","card");
-				$('body').append(node);
-				setTimeout(function(){$("#"+id).append(numberBox);},0);
-				setTimeout(function(){$("#"+id).append(playerLabel);},0);
-				node.draggable(deckDraggable);
-				node.click(function () {
-					turnOver();
-				});
-				node.css({"left":posx+"px","top":posy+"px",
-						  "text-align": "center", "box-shadow":"1px 1px 5px #333333", "position": "absolute",
-						  "background-color": "white","border-radius": "5px","border":"1px solid #a1a1a1"});
-				playerLabel.css({"font-family":"georgia,serif","font-weight": "normal","color":"rgb(255,175,0)","font-size": "8px","text-shadow":"2px 2px 2px #FFFF22"});
-				numberBox.css({"font-family":"georgia,serif","font-weight": "normal","color":color,"font-size": "60px","text-align": "center","text-shadow":"2px 2px 10px #AAAAAA"});
-				setTimeout(render,0);
-			};
-			
-			var render = function() {
-				if ($("#"+id).length == 0) {
-					createCard();
-				}
-				$("#"+id).css({"width":width+"px","height":height+"px"});
-				if (up) {
+			});
+			node.css({"left":posx+"px","top":posy+"px",
+					  "text-align": "center", "box-shadow":"1px 1px 5px #333333", "position": "absolute",
+					  "background-color": "white","border-radius": "5px","border":"1px solid #a1a1a1"});
+			playerLabel.css({"font-family":"georgia,serif","font-weight": "normal","color":"rgb(255,175,0)","font-size": "8px","text-shadow":"2px 2px 2px #FFFF22"});
+			numberBox.css({"font-family":"georgia,serif","font-weight": "normal","color":color,"font-size": "60px","text-align": "center","text-shadow":"2px 2px 10px #AAAAAA"});
+			setTimeout(render,0);
+		};
+		
+		var render = function() {
+			if ($("#"+id).length == 0) {
+				createCard();
+			}
+			$("#"+id).css({"width":width+"px","height":height+"px"});
+				//if (up) {
 					//$("#"+id).css({"background-src":src});
-					$("#"+id+"-number").text(name);
-					$("#"+id).css({"background-color":"white"});
-				}
-				else {
+			$("#"+id+"-number").text(name);
+			$("#"+id).css({"background-color":"white"});
+				//}
+				//else {
 					//$("#"+id).css({"background-src":srcBack});
-					$("#"+id+"-number").text("");
-					$("#"+id).css({"background-color":"silver"});
+					//$("#"+id+"-number").text("");
+					//$("#"+id).css({"background-color":"silver"});
+				//}
+		};
+		
+		var turnOver = this.turnOver = function() {	
+			//up = up ? false : true;
+			//render();
+		};
+		var pushUp = function(){
+			//$(".card").css({"z-index":0});
+			if (container == "table") {
+				socket.emit('cardPushedUp', { 'id': id} );
+				lastTableZIndex++;
 				}
-			};
+			else
+				$("#"+id).css({"z-index":lastHandZIndex++});
 			
-			this.add = function(id_) {
-				
-			};
-			var turnOver = this.turnOver = function() {	
-				up = up ? false : true;
-				render();
-			};
-			var pushUp = function(){
-				$(".card").css({"z-index":0});
-				$("#"+id).css({"z-index":1});
-			};
-			this.turnDown = function() {
-				up = false;
-				render();
-			};
-			this.turnUp = function() {
-				up = true;
-				render();
-			};
-			this.hide = function() {
-				$("#"+id).css({'display': "none"});
-			};
-			this.show = function() {
-				$("#"+id).css({'display': "inline"});
-			};
-			this.moveTo = function(x,y) {
-				posy = x;
-				posx = y;
-				$("#"+id).css({'top': y, 'left' : x});
-			};
-			this.move = function(offsetX,offsetY) {
-				posy += offsetY;
-				posx += offsetX;
-				$("#"+id).css({'top': posy, 'left' : posx});
-			};
-			this.getId = function() {
-				return id;
-			};
-			this.getName = function() {
-				return name;
-			};
-			this.getPosition = function() {
-				return {posx: posx, posy:posy};
-			};
-			this.getColor = function() {
-				return color;
-			};
-			var setTableDraggable = this.setTableDraggable = function(){
-				setTimeout(function(){node.draggable(tableDraggable);},0);
-			};
-			var setDeckDraggable = this.setDeckDraggable = function(){
-				setTimeout(function(){node.draggable(deckDraggable);},0);
-			};
-			this.setAsTableCard = function(){
-				if (!node) debugger;
-				setTimeout(function(){
-					node.addClass("tableCard");
-					node.removeClass("deckCard");
-					setTableDraggable();
-					},0);
-			};
-			this.setAsDeckCard = function(){
-				if (!node) debugger;
-				setTimeout(function(){
-					node.addClass("deckCard");
-					node.removeClass("tableCard");
-					setDeckDraggable();
-					},0);
-			};
-			this.drop = function() {
-				setTimeout(function(){
-					stopDrag();
-				},0);
-			};
-			this.toString = function() {
-				return id;
-			};
+		};
+		this.pushUp = function(zIndex){
+			if (container == "table") {
+				$("#"+id).css({"z-index":zIndex});
+			}
+		};
+		this.turnDown = function() {
+			up = false;
 			render();
 		};
+		this.turnUp = function() {
+			up = true;
+			render();
+		};
+		this.hide = function() {
+			$("#"+id).css({'display': "none"});
+		};
+		this.show = function() {
+			$("#"+id).css({'display': "inline"});
+		};
+		this.moveTo = function(x,y) {
+			posy = x;
+			posx = y;
+			$("#"+id).css({'top': y, 'left' : x});
+		};
+		this.move = function(offsetX,offsetY) {
+			posy += offsetY;
+			posx += offsetX;
+			$("#"+id).css({'top': posy, 'left' : posx});
+		};
+		this.getId = function() {
+			return id;
+		};
+		this.getName = function() {
+			return name;
+		};
+		this.getPosition = function() {
+			return {posx: posx, posy:posy};
+		};
+		this.getColor = function() {
+			return color;
+		};
+		var setTableDraggable = this.setTableDraggable = function(){
+			setTimeout(function(){node.draggable(tableDraggable);},0);
+		};
+		var setHandDraggable = this.setHandDraggable = function(){
+			setTimeout(function(){node.draggable(handDraggable);},0);
+		};
+		this.setAsTableCard = function(){
+			if (!node) debugger;
+			setTimeout(function(){
+				node.addClass("tableCard");
+				node.removeClass("handCard");
+				setTableDraggable();
+				container = "table";
+				},0);
+		};
+		this.setAsHandCard = function(){
+			if (!node) debugger;
+			setTimeout(function(){
+				node.addClass("handCard");
+				node.removeClass("tableCard");
+				setHandDraggable();
+				container = "hand";
+				},0);
+		};
+		this.drop = function() {
+			setTimeout(function(){
+				stopDrag();
+			},0);
+		};
+		this.toString = function() {
+			return id;
+		};
+		render();
+	};
 	
 	var Hand = function(_posy) {
 		var cards = {};
-		var deckHeight = 150;
+		var handHeight = 150;
 		var posy = _posy;
+		var cardsLength = 0;
 		
 		this.addCard = function(card) {
 			cards[card.getId()] = card;
-			card.setAsDeckCard();
+			card.setAsHandCard();
+			card.pushUp();
+			cardsLength++;
 		};
 		
 		this.getCard = function(id) {
@@ -295,11 +311,15 @@
 		this.sortCards = function() {
 			var i = 0;
 			var maxWidth = innerWidth - CARD_WIDTH - 40;
-			var maxHeight = deckHeight - CARD_HEIGHT - 20;
+			var maxHeight = handHeight - CARD_HEIGHT - 20;
+			var offset = 0;
+			if (maxWidth < cardsLength * CARD_WIDTH)
+				offset = maxWidth / cardsLength;
+			else
+				offset = CARD_WIDTH;
 			for (id in cards) {
-				var x = Math.floor(Math.random()*(maxWidth+1) + 20);
-				var y = Math.floor(Math.random()*(maxHeight+1) + 20);
-				cards[id].moveTo(x,posy + y);
+				var x = i*offset + 20;
+				cards[id].moveTo(x,posy + 20);
 				i++;
 			}
 		};
@@ -312,6 +332,7 @@
 				}
 			}
 			cards = auxCards;
+			cardsLength--;
 		};
 		
 		this.contains = function(id) {
@@ -327,6 +348,7 @@
 		this.addCard = function(card) {
 			cards[card.getId()] = card;
 			card.setAsTableCard();
+			card.pushUp();
 		};
 		
 		this.contains = function(id) {
@@ -363,6 +385,7 @@
 		var node;
 		var cant = 0;
 		var stackCardNode;
+		var waitingResponse = false;
 		
 		this.init = function() {
 			node = $("<div></div>");
@@ -387,6 +410,12 @@
 			stackCardNode.attr("id","stackCard");
 			stackCardNode.css({"width":CARD_WIDTH+"px","height":CARD_HEIGHT+"px",
 						  "box-shadow":"1px 1px 5px #333333", "background-color": "silver","border-radius": "5px","border":"1px solid #a1a1a1"});
+			stackCardNode.mouseenter(function(){
+				$(this).css({'cursor':'pointer'});
+			});
+			stackCardNode.mouseleave(function(){
+				$(this).css({'cursor':'auto'});
+			});
 			setTimeout(function(){$("#stack").append(stackCardNode);},0);
 			
 			node.draggable({
@@ -401,7 +430,10 @@
 				scroll: false
 			});
 			node.click(function () {
-				socket.emit('getStackCard', { playerName: player});
+				if (!waitingResponse) {
+					waitingResponse = true;
+					socket.emit('getStackCard', { playerName: player});
+				}
 			});
 			node.hide();
 		};
@@ -426,6 +458,10 @@
 			node.hide();
 		};
 		
+		this.setWaitingResponse = function(arg) {
+			waitingResponse = arg;
+		};
+		
 		var move = this.move = function(x,y) {
 			node.css({"left":x, "top" : y});
 			posx = x;
@@ -438,7 +474,7 @@
 	//socket = io.connect('http://facka-cards.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
 	
 	var tableHeight = 500;
-	var deckHeight = 150;
+	var handHeight = 150;
 	var player;
 	var cards = {};
 	var players = [];
@@ -470,7 +506,7 @@
 		cards = auxCards;
 	};
 	
-	var removeCardFromDeck = function(id) {
+	var removeCardFromHand = function(id) {
 		var auxCards = {};
 		for (cardId in cards) {
 			if (cardId != id){
@@ -517,8 +553,13 @@
 		}
 	});
 	
-	socket.on("cardDroppedOnDeck", function(c){
-		console.log("Event From Server: Card dropped on deck. id = "+c.id);
+	socket.on('cardPushedUp',function(c){
+		var card = table.getCard(c.id);
+		card.pushUp(c.zIndex);
+	});
+	
+	socket.on("cardDroppedOnHand", function(c){
+		console.log("Event From Server: Card dropped on hand. id = "+c.id);
 		if (table.contains(c.id)) {
 			console.log("Table contains the card");
 			var card = table.getCard(c.id);
@@ -620,6 +661,7 @@
 		var card = new Card(c.id, c.name, c.src, pos.x, pos.y, c.color);
 		table.addCard(card);
 		cards[c.id] = card;
+		stack.setWaitingResponse(false);
 	});
 	
 	socket.on("stackEmpty", function(data){
@@ -657,16 +699,16 @@
 				}
 			},
 			hoverClass: "overDroppable",
-			//accept: ".deckCard",
+			//accept: ".handCard",
 			accept: ".card",
 		});
 		
-		$("#deck").droppable({
+		$("#hand").droppable({
 			drop: function( event, ui ) {
 				if (ui.draggable[0].id && cards[ui.draggable[0].id]){
 					var card = cards[ui.draggable[0].id];
-					console.log("Emitting cardDroppedOnDeck event card.id = "+ui.draggable[0].id);
-					socket.emit('cardDroppedOnDeck', {card: { 'id': card.getId(), 'name': card.getName(), 'src': "", 'posx': ui.offset.left, 'posy': ui.offset.top, 'color': card.getColor()}, playerName : player});
+					console.log("Emitting cardDroppedOnHand event card.id = "+ui.draggable[0].id);
+					socket.emit('cardDroppedOnHand', {card: { 'id': card.getId(), 'name': card.getName(), 'src': "", 'posx': ui.offset.left, 'posy': ui.offset.top, 'color': card.getColor()}, playerName : player});
 				}
 			},
 			hoverClass: "overDroppable",
@@ -709,7 +751,7 @@
 		$( "#login-dialog" ).dialog( "open" );
 		
 		$("#table").css({"width":"100%", "height":tableHeight});
-		$("#deck").css({"width":"100%", "height":deckHeight});
+		$("#hand").css({"width":"100%", "height":handHeight});
 		
 		stack.init();
 		
@@ -755,7 +797,7 @@
 		<div id="table" style="width : 100%; height:500px; z-index: -2;">
 		</div>
 		<!--background-color:rgb(83, 43, 0)-->
-		<div id="deck" style="z-index: -1; width: 100%; height: 150px; box-shadow: 0 0 5px rgba(100, 180, 30, 1)">
+		<div id="hand" style="z-index: -1; width: 100%; height: 150px; box-shadow: 0 0 5px rgba(100, 180, 30, 1)">
 		</div>
 	</div>
 </body>

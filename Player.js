@@ -30,6 +30,9 @@ Player.prototype.takeCard = function(card){
 Player.prototype.removeCards = function(){
 	this.cards = [];
 };
+Player.prototype.setCards = function(cards_) {
+	this.cards = cards_;
+};
 Player.prototype.getCards = function() {
 	return this.cards;
 };
@@ -66,14 +69,17 @@ Player.prototype.removeCard = function(id){
 	console.log("Player.removeCard( "+id+" )");
 	var found = false;
 	var i = 0;
+	var ret;
 	while (!found && i < this.cards.length){
 		var card = this.cards[i];
 		if (card.getId() == id){
 			found = true;
+			ret = card;
 			this.cards.splice(i,1);
 		}
 		i++;
 	}
+	return card;
 };
 Player.prototype.calculatePoints = function(){
 	var total = 0;
