@@ -38,7 +38,7 @@ var admin;
 var gameStarted = false;
 var partidas=new Array();
 
-io.set('heartbeat interval', 20); 
+io.set('heartbeat interval', 10); //cambie este valor de 20 a 10 para que ande mas rapido.
 io.set('heartbeat timeout', 60); 
 io.set('transports',[ 'xhr-polling' ]);
 
@@ -75,9 +75,9 @@ io.sockets.on('connection', function (socket) {
 				console.log("Game Already Started");
 			}
 			else {
-				console.log("Successfull Login");
+				console.log("Successfull Login: "+data.player+" / "+data.password);
 				socket.emit("successfullLogin",{player : data.player});
-				var player = new Player(data.player);
+				var player = new Player(data.player,data.password);
 				if (!admin) {
 					admin = player;
 					socket.emit("adminUser",{});
@@ -168,11 +168,19 @@ io.sockets.on('connection', function (socket) {
 	data : {cardId : <id>, x: <x>, y: <y>}
 	*/
   socket.on('cardDroppedOnTable', function (data) {
-    socket.emit("cardDroppedOnTable", data.card);	
-	socket.broadcast.emit("cardDroppedOnTable", data.card);	
-	socket.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");	
-	socket.broadcast.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");
-	table.getPlayerByName(data.playerName).removeCard(data.card.id);
+	if (table.getCard(data.card.id)) {
+		socket.emit("message","Player "+data.playerName+" moved card " + data.card.id+ ".");	
+		socket.broadcast.emit("message","Player "+data.playerName+" moved card " + data.card.id+ ".");
+	}
+	else {
+		var card = table.getPlayerByName(data.playerName).removeCard(data.card.id);
+		card.moveTo(data.card.pox, data.card.posy);
+		table.addCard(card);
+		socket.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");	
+		socket.broadcast.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");
+	}
+	socket.emit("cardDroppedOnTable", data.card);
+	socket.broadcast.emit("cardDroppedOnTable", data.card);
 	console.log("Player "+data.playerName+" dropped the card "+data.card.id+" on the table.");
 	if ( !(table.getPlayerByName(data.playerName).hasCards()) ) {
 		socket.emit("message","Player "+data.playerName+" wins the round.");	
@@ -195,8 +203,15 @@ io.sockets.on('connection', function (socket) {
   });  
   
   socket.on('cardDragged', function (data) {
-	socket.broadcast.emit("cardDragged", data);	
-  });  
+	socket.broadcast.emit("cardDragged", data);
+  });
+  
+  socket.on('cardPushedUp', function(data) {
+	var card = table.getCard(data.id);
+	var zIndex = table.pushUpCard(card);
+	socket.emit("cardPushedUp", {'id': data.id, 'zIndex': zIndex});
+	socket.broadcast.emit("cardPushedUp", {'id': data.id, 'zIndex': zIndex});
+  });
   
   socket.on('finishHand', function (data) {
 	dealed = false;
