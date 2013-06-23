@@ -9,7 +9,7 @@ var app = require('express')()
   , server = require('http').createServer(app)
   , io = require('socket.io').listen(server);
   
-server.listen(80);
+server.listen(8000);
 
 app.get('/', function (req, res) {
   res.sendfile(__dirname + '/index.html');
@@ -36,6 +36,7 @@ var gameFactory = new GameFactory();
 var dealed = false;
 var admin;
 var gameStarted = false;
+var partidas=new Array();
 
 io.set('heartbeat interval', 20); 
 io.set('heartbeat timeout', 60); 
@@ -43,10 +44,18 @@ io.set('transports',[ 'xhr-polling' ]);
 
 io.sockets.on('connection', function (socket) {
   
+  socket.on('getPartidas', function (name, fn) {
+	fn(partidas);
+  });
+  
+  socket.on('createPartida', function (name) {
+	
+  });
+  
   socket.on('login', function (data) {
     console.log("Login user: "+data.player);
 	
-	if (data.player == "admin" && data.password = "admin") {
+	if (data.player == "admin" && data.password == "admin") {
 	 //debe retornar algo para permitir reiniciar el juego borrando los players
 	 // o puede borrar directamente los players
 	}
