@@ -56,6 +56,10 @@ function Table(){
 		return ret;
 	};
 	
+	Table.prototype.getCards = function() {
+		return this.cards;
+	};
+	
 	Table.prototype.removeCard = function(id){
 		console.log("Table.removeCard( "+id+" )");
 		var found = false;
@@ -68,6 +72,11 @@ function Table(){
 			}
 			i++;
 		}
+	};
+	
+	Table.prototype.moveCard = function(id, x, y){
+		var card = this.getCard(id);
+		card.moveTo(x,y);
 	};
 	
 	Table.prototype.pushUpCard = function(card){

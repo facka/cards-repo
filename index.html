@@ -118,7 +118,8 @@
 		var container;
 		
 		var startDrag = function() {
-			pushUp();
+			//pushUp();
+			$("#"+id).css({"z-index":lastTableZIndex++});
 		};
 		
 		var drag = function() {
@@ -135,14 +136,15 @@
 		};
 		
 		var stopDrag = function() {
-			if (!node) debugger;
-			node.effect("pulsate", {times:2}, 500 );
+			if (container == "hand") {
+				//hand.sortCards();
+			}
 		};
 		
 		var handDraggable = {
 			start: startDrag,
 			drag: drag,
-			//stop: stopDrag,
+			stop: stopDrag,
 			containment: "#container",
 			cursor: 'move',
 			scroll: false
@@ -151,7 +153,7 @@
 		var tableDraggable = {
 			start: startDrag,
 			drag: dragAndNotify,
-			//stop: stopDrag,
+			stop: stopDrag,
 			containment: "#container",
 			cursor: 'move',
 			scroll: false
@@ -264,8 +266,8 @@
 				node.addClass("tableCard");
 				node.removeClass("handCard");
 				setTableDraggable();
-				container = "table";
 				},0);
+			container = "table";
 		};
 		this.setAsHandCard = function(){
 			if (!node) debugger;
@@ -273,70 +275,125 @@
 				node.addClass("handCard");
 				node.removeClass("tableCard");
 				setHandDraggable();
-				container = "hand";
 				},0);
+			container = "hand";
 		};
 		this.drop = function() {
 			setTimeout(function(){
-				stopDrag();
+				//stopDrag();
+				node.effect("pulsate", {times:2}, 500 );
 			},0);
 		};
 		this.toString = function() {
 			return id;
 		};
+		this.compareTo = function(otherCard) {
+			var colorToNumber = function (color) {
+				var ret;
+				switch(color) {
+					case "#FF0000":
+						ret = 1;
+						break;
+					case "#00FF00":
+						ret = 2;
+						break;
+					case "#0000FF":
+						ret = 3;
+						break;
+					case "#FFFF00": 
+						ret = 4;
+						break;				
+				}
+				return ret;
+			};
+			
+			var compareNumbers = function(n1, n2) {
+				if (n1 == n2) return 0;
+				if (n1 < n2) return -1;
+				if (n1 > n2) return 1; 
+			}
+			
+			if (color == otherCard.color) {
+				return compareNumbers(name,otherCard.getName());
+			}
+			else {
+				return compareNumbers(colorToNumber(color),colorToNumber(otherCard.getColor()));
+			}
+		}
 		render();
 	};
 	
 	var Hand = function(_posy) {
-		var cards = {};
+		var cards = [];
 		var handHeight = 150;
 		var posy = _posy;
-		var cardsLength = 0;
 		
 		this.addCard = function(card) {
-			cards[card.getId()] = card;
+			cards.push(card);
 			card.setAsHandCard();
 			card.pushUp();
-			cardsLength++;
 		};
 		
-		this.getCard = function(id) {
-			return cards[id];
+		var getCard = this.getCard = function(id) {
+			var found = false;
+			var i = 0;
+			var ret;
+			while (!found && i < cards.length){
+				var card = cards[i];
+				if (card.getId() == id){
+					found = true;
+					ret = card;
+				}
+				i++;
+			}
+			return ret;
 		};
 		
 		this.getCards = function() {
 			return cards;
 		};
 		
+		var cardsComparator = function(card1, card2) {
+			return card1.compareTo(card2);
+		};
+		
 		this.sortCards = function() {
+			lastHandZIndex = 1000;
+			//cards = cards.sort(cardsComparator);
 			var i = 0;
 			var maxWidth = innerWidth - CARD_WIDTH - 40;
 			var maxHeight = handHeight - CARD_HEIGHT - 20;
 			var offset = 0;
-			if (maxWidth < cardsLength * CARD_WIDTH)
-				offset = maxWidth / cardsLength;
+			if (maxWidth < cards.length * CARD_WIDTH)
+				offset = maxWidth / cards.length;
 			else
 				offset = CARD_WIDTH;
-			for (id in cards) {
+			for (index in cards) {
 				var x = i*offset + 20;
-				cards[id].moveTo(x,posy + 20);
+				cards[index].moveTo(x,posy + 20);
+				cards[index].pushUp();
 				i++;
 			}
 		};
 		
 		this.removeCard = function(id) {
-			var auxCards = {};
-			for (cardId in cards) {
-				if (cardId != id){
-					auxCards[cardId] = cards[cardId];
+			var found = false;
+			var i = 0;
+			var ret;
+			while (!found && i < cards.length){
+				var card = cards[i];
+				if (card.getId() == id){
+					found = true;
+					ret = card;
+					cards.splice(i,1);
 				}
+				i++;
 			}
-			cards = auxCards;
-			cardsLength--;
+			return ret;
 		};
 		
 		this.contains = function(id) {
-			if (cards[id])
+			if (getCard(id))
 				return true;
 			return false;				
 		};
@@ -345,7 +402,7 @@
 	var Table = function() {
 		var cards = {};
 		
-		this.addCard = function(card) {
+		var addCard = this.addCard = function(card) {
 			cards[card.getId()] = card;
 			card.setAsTableCard();
 			card.pushUp();
@@ -373,6 +430,14 @@
 				}
 			}
 			cards = auxCards;
+		};
+		
+		this.setCards = function (cardsArray) {
+			for (i in cardsArray) {
+				var jsonCard = cardsArray[i];
+				var card = new Card(jsonCard.id,jsonCard.name,"",jsonCard.posx,jsonCard.posy,jsonCard.color);
+				addCard(card);
+			}
 		};
 	}
 	
@@ -533,6 +598,7 @@
 			console.log("Table contains the card");
 			var card = table.getCard(c.id);
 			card.moveTo(c.posx,c.posy);
+			lastTableZIndex = c.zIndex;
 			card.setAsTableCard();
 		}
 		else {//no esta en table
@@ -549,8 +615,10 @@
 				cards[c.id] = card;
 			}
 			table.addCard(card);
+			lastTableZIndex = c.zIndex;
 			cards[c.id].drop();
 		}
+		//hand.sortCards();
 	});
 	
 	socket.on('cardPushedUp',function(c){
@@ -575,6 +643,7 @@
 			}
 			//la carta esta en la mano, no se hace nada
 		}
+		//hand.sortCards();
 	});
 	
 	socket.on("removeCardFromTable", function(c){
@@ -667,6 +736,24 @@
 	socket.on("stackEmpty", function(data){
 		stack.setEmpty();
 	});
+	
+	socket.on("tableCards", function(data){
+		table.setCards(data.cards);
+		$("#login-dialog").dialog( "close" );
+		$("#setup-dialog").dialog( "close" );
+	});
+	
+	socket.on("handCards" , function (data) {
+		var cardsList = data.cards;
+		for (i in cardsList){
+			var c = cardsList[i];
+			var card = new Card(c.id, c.name, c.src, c.posx, c.posy, c.color);
+			hand.addCard(card);
+			cards[c.id] = card;
+		}
+		hand.sortCards();
+		stack.show();
+	});	
 	
 	socket.on("playersPoints", function(data){
 		for ( player in data) {
@@ -794,10 +881,10 @@
 		<p id="waitMessage">Por favor espere a que el administrador inicie el juego.</p>
 	</div>
 	<div id="container">
-		<div id="table" style="width : 100%; height:500px; z-index: -2;">
+		<div id="table" style="width : 1364px; height:500px; z-index: -2;">
 		</div>
 		<!--background-color:rgb(83, 43, 0)-->
-		<div id="hand" style="z-index: -1; width: 100%; height: 150px; box-shadow: 0 0 5px rgba(100, 180, 30, 1)">
+		<div id="hand" style="z-index: -1; width: 1364px; height: 150px; box-shadow: 0 0 5px rgba(100, 180, 30, 1)">
 		</div>
 	</div>
 </body>

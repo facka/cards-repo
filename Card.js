@@ -31,8 +31,8 @@ Card.prototype.show = function() {
 	
 };
 Card.prototype.moveTo = function(x,y) {
-	this.posy = x;
-	this.posx = y;
+	this.posx = x;
+	this.posy = y;
 };
 Card.prototype.move = function(offsetX,offsetY) {
 	this.posy += offsetY;

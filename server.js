@@ -61,8 +61,21 @@ io.sockets.on('connection', function (socket) {
 	}
 	
 	if (table.existsPlayer(data.player)){
-		console.log("Wrong User");
-		socket.emit("wrongUserName",{});
+		var player = table.getPlayerByName(data.player);
+		if ( player.getPassword() == data.password) {
+			socket.emit("handCards",{cards : player.getCards()});
+			var cards = table.getCards();
+			var cardsArray = [];
+			for (i in cards){
+				cardsArray.push(cards[i].toJSON());
+			}
+			socket.emit("tableCards", {cards: cardsArray, player : data.player});
+			socket.broadcast.emit("message","Player "+ data.player +" is back!");	
+		}
+		else {
+			console.log("Wrong User");
+			socket.emit("wrongUserName",{});
+		}
 	}
 	else {
 		if (table.isFull()) {
@@ -169,18 +182,20 @@ io.sockets.on('connection', function (socket) {
 	*/
   socket.on('cardDroppedOnTable', function (data) {
 	if (table.getCard(data.card.id)) {
+		table.moveCard(data.card.id,data.card.posx, data.card.posy);
 		socket.emit("message","Player "+data.playerName+" moved card " + data.card.id+ ".");	
 		socket.broadcast.emit("message","Player "+data.playerName+" moved card " + data.card.id+ ".");
 	}
 	else {
 		var card = table.getPlayerByName(data.playerName).removeCard(data.card.id);
-		card.moveTo(data.card.pox, data.card.posy);
+		card.moveTo(data.card.posx, data.card.posy);
 		table.addCard(card);
 		socket.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");	
 		socket.broadcast.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");
 	}
-	socket.emit("cardDroppedOnTable", data.card);
-	socket.broadcast.emit("cardDroppedOnTable", data.card);
+	var card = table.getCard(data.card.id);
+	socket.emit("cardDroppedOnTable", card.toJSON());
+	socket.broadcast.emit("cardDroppedOnTable", card.toJSON());
 	console.log("Player "+data.playerName+" dropped the card "+data.card.id+" on the table.");
 	if ( !(table.getPlayerByName(data.playerName).hasCards()) ) {
 		socket.emit("message","Player "+data.playerName+" wins the round.");	
@@ -192,9 +207,8 @@ io.sockets.on('connection', function (socket) {
 	}
   });
   
-  socket.on('cardDroppedOnDeck', function (data) {
-	socket.emit("cardDroppedOnDeck", data.card);	
-//	socket.broadcast.emit("cardDroppedOnDeck", data);
+  socket.on('cardDroppedOnHand', function (data) {
+	socket.emit("cardDroppedOnHand", data.card);	
 	socket.broadcast.emit("removeCardFromTable", data.card);
 	socket.emit("message","Player "+data.playerName+" picked up a card from the table.");	
 	socket.broadcast.emit("message","Player "+data.playerName+" picked up a card from the table.");
