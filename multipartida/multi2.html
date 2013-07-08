@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+	<title>Cards</title>
+	<meta charset="utf-8" />
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+	<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+	<script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+	<script src="/jquery.ui.touch-punch.min.js"></script>
+	<script src="/Menu.js"></script>
+	<script src="/Messages.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		
+	//socket = io.connect('http://192.168.1.3');
+	socket = io.connect('http://localhost/');
+	//socket = io.connect('http://facka-cards.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
+	
+	socket.on("successfullLogin", function(d){
+		$("#login-dialog").dialog("close");
+		$("#setup-dialog").dialog("open");
+		player = d.player;
+		socket.on( player+"Cards" , function (data) {
+					console.log("Player cards "+data);
+					var cardsList = data.cards;
+					for (i in cardsList){
+						var c = cardsList[i];
+						var card = new Card(c.id, c.name, c.src, c.posx, c.posy, c.color);
+						hand.addCard(card);
+						cards[c.id] = card;
+					}
+					hand.sortCards();
+					stack.show();
+				});
+	});
+		
+	$(document).ready(function(){
+			
+		$( "#login-dialog" ).dialog({
+		  autoOpen: false,
+		  height: 300,
+		  width: 350,
+		  modal: true,
+		  buttons: {
+			"Mesas": function() {
+				var playerName = $("#inputName").val();
+				var playerPassword = $("#inputPassword").val();
+				var data = {
+					player: playerName,
+					password : playerPassword
+				};
+				socket.emit('login', data);
+			}
+		  },
+		  close: function() {
+			$("#inputName").val( "" ).removeClass( "ui-state-error" );
+		  }
+		});
+				
+		$( "#login-dialog" ).dialog( "open" );
+		
+	});
+		
+	</script>
+</head>
+<!-- background-color:rgb(36, 129, 16) -->
+<body style="padding: 5px; background-color:rgb(36, 129, 16)">
+	<div id="login-dialog" title="Login">
+		<fieldset style="display: block">
+			<div>
+				<label for="inputName">Name</label>
+				<input type="text" name="name" id="inputName" style="width : 100%"/>
+				<label for="inputPassword">Password</label>
+				<input type="password" name="password" id="inputPassword" style="width : 100%"/>
+			</div>
+			<div id="loginMessage" style="color: rgb(200,50,50)"></div>
+		</fieldset>
+	</div>
+	
+	<div id="container">
+	</div>
+</body>
+</html>
