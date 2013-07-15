@@ -1,0 +1,29 @@
+<!doctype html>
+
+<html>
+<head>
+	<title>Cards</title>
+	<meta charset="utf-8" />
+<!-- background-color:rgb(36, 129, 16) -->
+<body>
+ 
+<div id="dialog-form" title="Create new user">
+  <p class="validateTips">Ingrese los datos requeridos:</p>
+ 
+  <form id='login' action='/login' method='post' accept-charset='UTF-8'>
+    
+  <fieldset style="display: block">
+				<label for="inputName">Nombre</label>
+				<input type="text" name="username" id="inputName" style="width : 100%"/>
+				<label for="inputPassword">Password</label>
+				<input type="password" name="password" id="inputPassword" style="width : 100%"/>
+				<div id="loginMessage" style="color: rgb(200,50,50)"></div>
+				<input type='submit' name='Submit' value='Submit' />
+			</fieldset>
+  
+  </form>
+</div>
+ 
+ 
+</body>
+</html>

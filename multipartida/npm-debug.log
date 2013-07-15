@@ -1,0 +1,65 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'c:\\Program Files (x86)\\nodejs\\node.exe',
+1 verbose cli   'c:\\Program Files (x86)\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
+1 verbose cli   'install',
+1 verbose cli   'passport-basic' ]
+2 info using npm@1.2.32
+3 info using node@v0.10.12
+4 verbose read json d:\Java\facka-cards\package.json
+5 warn package.json Cards@1.0.0-26 No repository field.
+6 warn package.json Cards@1.0.0-26 No readme data.
+7 verbose read json d:\Java\facka-cards\node_modules\express\package.json
+8 verbose read json d:\Java\facka-cards\node_modules\passport\package.json
+9 verbose read json d:\Java\facka-cards\node_modules\passport-local\package.json
+10 verbose read json d:\Java\facka-cards\node_modules\socket.io\package.json
+11 verbose from cache d:\Java\facka-cards\package.json
+12 verbose readDependencies using package.json deps
+13 verbose cache add [ 'passport-basic', null ]
+14 verbose cache add name=undefined spec="passport-basic" args=["passport-basic",null]
+15 verbose parsed url { protocol: null,
+15 verbose parsed url   slashes: null,
+15 verbose parsed url   auth: null,
+15 verbose parsed url   host: null,
+15 verbose parsed url   port: null,
+15 verbose parsed url   hostname: null,
+15 verbose parsed url   hash: null,
+15 verbose parsed url   search: null,
+15 verbose parsed url   query: null,
+15 verbose parsed url   pathname: 'passport-basic',
+15 verbose parsed url   path: 'passport-basic',
+15 verbose parsed url   href: 'passport-basic' }
+16 silly lockFile 63521f23-passport-basic passport-basic
+17 verbose lock passport-basic C:\Users\Micaela\AppData\Roaming\npm-cache\63521f23-passport-basic.lock
+18 silly lockFile 63521f23-passport-basic passport-basic
+19 silly lockFile 63521f23-passport-basic passport-basic
+20 verbose addNamed [ 'passport-basic', '' ]
+21 verbose addNamed [ null, '' ]
+22 silly lockFile b36e0f69-passport-basic passport-basic@
+23 verbose lock passport-basic@ C:\Users\Micaela\AppData\Roaming\npm-cache\b36e0f69-passport-basic.lock
+24 silly addNameRange { name: 'passport-basic', range: '', hasData: false }
+25 verbose url raw passport-basic
+26 verbose url resolving [ 'https://registry.npmjs.org/', './passport-basic' ]
+27 verbose url resolved https://registry.npmjs.org/passport-basic
+28 info trying registry request attempt 1 at 22:56:36
+29 http GET https://registry.npmjs.org/passport-basic
+30 http 404 https://registry.npmjs.org/passport-basic
+31 silly registry.get cb [ 404,
+31 silly registry.get   { server: 'CouchDB/1.3.0 (Erlang OTP/R15B03)',
+31 silly registry.get     date: 'Thu, 11 Jul 2013 01:56:40 GMT',
+31 silly registry.get     'content-type': 'application/json',
+31 silly registry.get     'content-length': '52',
+31 silly registry.get     'cache-control': 'must-revalidate' } ]
+32 silly lockFile b36e0f69-passport-basic passport-basic@
+33 silly lockFile b36e0f69-passport-basic passport-basic@
+34 error 404 'passport-basic' is not in the npm registry.
+34 error 404 You should bug the author to publish it
+34 error 404
+34 error 404 Note that you can also install from a
+34 error 404 tarball, folder, or http url, or git url.
+35 error System Windows_NT 6.1.7601
+36 error command "c:\\Program Files (x86)\\nodejs\\node.exe" "c:\\Program Files (x86)\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "install" "passport-basic"
+37 error cwd d:\Java\facka-cards\multipartida
+38 error node -v v0.10.12
+39 error npm -v 1.2.32
+40 error code E404
+41 verbose exit [ 1, true ]
