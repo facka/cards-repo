@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+	<title>Console</title>
+	<meta charset="utf-8" />
+	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+	<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+	<script src="http://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		
+	socket = io.connect('http://localhost/');
+	
+	$(document).ready(function(){
+		socket.on("log", function(data){
+			var message = $("<div></div>");
+			message.text(data);
+			$('body').append(message);
+			$('body').append($("</br>"));
+		});
+	});
+	
+	</script>
+</head>
+<body>
+</body>
+</html>
