@@ -36,7 +36,7 @@ function Table(){
 	};
 	
 	Table.prototype.addCard = function(card){
-		console.log("Table.addPlayer( "+card.getId()+" )");
+		console.log("Table.addCard( "+card.getId()+" )");
 		this.cards.push(card);
 		this.pushUpCard(card);
 	};

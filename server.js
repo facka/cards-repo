@@ -37,13 +37,14 @@ var dealed = false;
 var admin;
 var gameStarted = false;
 var partidas=new Array();
+var playersSocket = {};
 
 io.set('heartbeat interval', 10); //cambie este valor de 20 a 10 para que ande mas rapido.
 io.set('heartbeat timeout', 60); 
 io.set('transports',[ 'xhr-polling' ]);
 
 io.sockets.on('connection', function (socket) {
-  
+	
   socket.on('getPartidas', function (name, fn) {
 	fn(partidas);
   });
@@ -63,14 +64,17 @@ io.sockets.on('connection', function (socket) {
 	if (table.existsPlayer(data.player)){
 		var player = table.getPlayerByName(data.player);
 		if ( player.getPassword() == data.password) {
+			console.log("User Reconnected: "+socket.id);
+			playersSocket[socket.id] = data.player;
 			socket.emit("handCards",{cards : player.getCards()});
 			var cards = table.getCards();
 			var cardsArray = [];
 			for (i in cards){
 				cardsArray.push(cards[i].toJSON());
 			}
+			socket.emit("successfullLogin",{player : data.player});
 			socket.emit("tableCards", {cards: cardsArray, player : data.player});
-			socket.broadcast.emit("message","Player "+ data.player +" is back!");	
+			socket.broadcast.emit("message","Player "+ data.player +" is back!");
 		}
 		else {
 			console.log("Wrong User");
@@ -89,6 +93,8 @@ io.sockets.on('connection', function (socket) {
 			}
 			else {
 				console.log("Successfull Login: "+data.player+" / "+data.password);
+				console.log("User connected: "+socket.id);
+				playersSocket[socket.id] = data.player;
 				socket.emit("successfullLogin",{player : data.player});
 				var player = new Player(data.player,data.password);
 				if (!admin) {
@@ -164,6 +170,7 @@ io.sockets.on('connection', function (socket) {
 		if (dealed){
 			var card = table.getDealer().takeCardFromTop();
 			if (card) {
+				table.addCard(card);
 				socket.emit("stackCard",card);	
 				//TODO si es compartida la carta del pozo se reenvia
 				socket.broadcast.emit("stackCard",card);
@@ -181,6 +188,7 @@ io.sockets.on('connection', function (socket) {
 	data : {cardId : <id>, x: <x>, y: <y>}
 	*/
   socket.on('cardDroppedOnTable', function (data) {
+	console.log("Player "+data.playerName+" dropped the card "+data.card.id+" on the table.");
 	if (table.getCard(data.card.id)) {
 		table.moveCard(data.card.id,data.card.posx, data.card.posy);
 		socket.emit("message","Player "+data.playerName+" moved card " + data.card.id+ ".");	
@@ -188,15 +196,16 @@ io.sockets.on('connection', function (socket) {
 	}
 	else {
 		var card = table.getPlayerByName(data.playerName).removeCard(data.card.id);
-		card.moveTo(data.card.posx, data.card.posy);
-		table.addCard(card);
-		socket.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");	
-		socket.broadcast.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");
+		if (card) {
+			card.moveTo(data.card.posx, data.card.posy);
+			table.addCard(card);
+			socket.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");	
+			socket.broadcast.emit("message","Player "+data.playerName+" dropped card " + data.card.id+ " on the table.");
+		}
 	}
 	var card = table.getCard(data.card.id);
 	socket.emit("cardDroppedOnTable", card.toJSON());
 	socket.broadcast.emit("cardDroppedOnTable", card.toJSON());
-	console.log("Player "+data.playerName+" dropped the card "+data.card.id+" on the table.");
 	if ( !(table.getPlayerByName(data.playerName).hasCards()) ) {
 		socket.emit("message","Player "+data.playerName+" wins the round.");	
 		socket.broadcast.emit("message","Player "+data.playerName+" wins the round.");
@@ -213,7 +222,11 @@ io.sockets.on('connection', function (socket) {
 	socket.emit("message","Player "+data.playerName+" picked up a card from the table.");	
 	socket.broadcast.emit("message","Player "+data.playerName+" picked up a card from the table.");
 	console.log("Player "+data.playerName+" picked up the card "+data.card.id+" from the table.");
-	table.removeCard(data.card.id);
+	var card = table.getCard(data.card.id);
+	if (card) {
+		table.getPlayerByName(data.playerName).takeCard(card);
+		table.removeCard(data.card.id);
+	}
   });  
   
   socket.on('cardDragged', function (data) {
@@ -247,10 +260,14 @@ io.sockets.on('connection', function (socket) {
 	socket.emit("message",message);	
 	socket.broadcast.emit("message",message);	
   }); 
-});
-
-io.sockets.on('disconnect', function (socket) {
-	console.log("socket.id : "+socket.id);
-	socket.emit("message",socket.id+ "logged out");	
-	socket.broadcast.emit("message",socket.id+ "logged out");	
+  
+  socket.on('disconnect', function () {
+    console.log("socket.id : "+socket.id);
+	if (playersSocket[socket.id]) {
+		socket.emit("message","User " + playersSocket[socket.id] + " has logged out");	
+		socket.broadcast.emit("message","User " + playersSocket[socket.id] + " has logged out");	
+	}
+	
+  });
+  
 });

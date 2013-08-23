@@ -75,11 +75,12 @@ Player.prototype.removeCard = function(id){
 		if (card.getId() == id){
 			found = true;
 			ret = card;
+			console.log("Player.removeCard( "+id+" )  CARD FOUND!!");
 			this.cards.splice(i,1);
 		}
 		i++;
 	}
-	return card;
+	return ret;
 };
 Player.prototype.calculatePoints = function(){
 	var total = 0;

@@ -538,6 +538,9 @@
 	socket = io.connect('http://localhost');
 	//socket = io.connect('http://facka-cards.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
 	
+	socket.heartbeatInterval = 10; //cambie este valor de 20 a 10 para que ande mas rapido.
+	socket.heartbeatTimeout = 60; 
+	
 	var tableHeight = 500;
 	var handHeight = 150;
 	var player;
