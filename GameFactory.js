@@ -2,6 +2,7 @@ var Card = require("./Card");
 var Dealer = require("./Dealer");
 var ElferRausMasterDealer = require("./ElferRausMasterDealer");
 var ElferRausDealer = require("./ElferRausDealer");
+var GranDalmutiDealer = require("./GranDalmutiDealer");
 function GameFactory(){
 	
 	this.createElferRausMaster = function () {
@@ -62,12 +63,27 @@ function GameFactory(){
 		};
 	};
 	
+	this.createGranDalmuti = function () {
+		
+		
+		var dealer = new GranDalmutiDealer();
+		console.log("GranDalmuti game created!!"+dealer.toString());
+		return {
+			dealer : dealer,
+			maxPlayers : 8,
+			minPlayers : 2
+		};
+	};
+	
 	GameFactory.prototype.create = function(arg) {
 		if (arg == "ElferRaus Master") {
 			return this.createElferRausMaster();
 		}
 		if (arg == "ElferRaus") {
 			return this.createElferRaus();
+		}
+		if (arg == "GranDalmuti") {
+			return this.createGranDalmuti();
 		}
 		return {
 			dealer : new Dealer([]),

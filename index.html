@@ -168,8 +168,10 @@
 			node.attr("id",id);
 			node.attr("class","card");
 			$('body').append(node);
-			setTimeout(function(){$("#"+id).append(numberBox);},0);
-			setTimeout(function(){$("#"+id).append(playerLabel);},0);
+			node.append(numberBox);
+			node.append(playerLabel);
+			//setTimeout(function(){$("#"+id).append(numberBox);},0);
+			//setTimeout(function(){$("#"+id).append(playerLabel);},0);
 			node.draggable(handDraggable);
 			node.click(function () {
 				pushUp();
@@ -178,7 +180,10 @@
 					  "text-align": "center", "box-shadow":"1px 1px 5px #333333", "position": "absolute",
 					  "background-color": "white","border-radius": "5px","border":"1px solid #a1a1a1"});
 			playerLabel.css({"font-family":"georgia,serif","font-weight": "normal","color":"rgb(255,175,0)","font-size": "8px","text-shadow":"2px 2px 2px #FFFF22"});
-			numberBox.css({"font-family":"georgia,serif","font-weight": "normal","color":color,"font-size": "60px","text-align": "center","text-shadow":"2px 2px 10px #AAAAAA"});
+			
+			//numberBox.css({"font-family":"georgia,serif","font-weight": "normal","color":color,"font-size": "40px","text-align": "center","text-shadow":"2px 2px 10px #AAAAAA"});
+			numberBox.css({"font-weight": "bold","color":color,"font-size": "45px","text-align": "center","text-shadow":"2px 2px 10px #AAAAAA","margin-top": "15px"});
+			
 			setTimeout(render,0);
 		};
 		
@@ -327,6 +332,42 @@
 		var cards = [];
 		var handHeight = 150;
 		var posy = _posy;
+		var scrollX = 0;
+		var SCROLLWIDTH = 40;
+		var MARGIN = 20;
+		var scrollAtIndex = -1;
+		
+		var drag = function() {
+			sortCards();
+		};
+		
+		var init = function() {
+			var scrollContainer = $("<div></div>");
+			scrollContainer.attr("id","scroll-container");
+			var scroll = $("<div></div>");
+			scroll.attr("id","scroll-container");
+			var containerWidth = (innerWidth - MARGIN*2)+'px';
+			scrollContainer.css({'z-index': 30000, 'width': 'auto', 'margin-left':'15px', 'height': '145px', 'padding': '3px'});
+			scrollContainer.append(scroll);
+			scroll.css({'z-index': 30000, 'width': '64px', 'height': '80px','margin-top': '65px', 'background-color': 'rgba(100, 180, 30, 0.5)', 'border-radius': '5px','border':'1px solid #a1a1a1'});
+			$("#hand").append(scrollContainer);
+			scroll.draggable({
+				axis: "x",
+				containment: "#scroll-container",
+				start: function() {
+					
+				  },
+				drag: function() {
+					var offset = $(this).offset();
+					scrollX = offset.left - MARGIN;
+					drag();
+				  },
+				stop: function() {
+					
+				  }	
+			});			
+			
+		};
 		
 		this.addCard = function(card) {
 			cards.push(card);
@@ -357,23 +398,129 @@
 			return card1.compareTo(card2);
 		};
 		
-		this.sortCards = function() {
+		var getMaxWidth = function(){
+			return innerWidth - CARD_WIDTH - (MARGIN*2);
+		}
+		
+		var sortCards = this.sortCards = function() {
 			lastHandZIndex = 1000;
-			//cards = cards.sort(cardsComparator);
-			var i = 0;
-			var maxWidth = innerWidth - CARD_WIDTH - 40;
-			var maxHeight = handHeight - CARD_HEIGHT - 20;
+			//sortStrategy1();
+			sortStrategy2();
+			
+		};
+		
+		
+		
+		/**
+			//El offset es la separacion de las cartas repartidas uniformemente en el ancho de la pantalla
+		*/
+		var calculateOffset = function() {
+			var maxWidth = getMaxWidth();
 			var offset = 0;
 			if (maxWidth < cards.length * CARD_WIDTH)
 				offset = maxWidth / cards.length;
 			else
 				offset = CARD_WIDTH;
+			return offset;
+		};
+		
+		var getScrollIndex = function(offset){
+			var i = 0;
+			var scrollAt = 0;
 			for (index in cards) {
-				var x = i*offset + 20;
-				cards[index].moveTo(x,posy + 20);
-				cards[index].pushUp();
+				
+				var x = i*offset + MARGIN;
+				var xx = (i+1)*offset + MARGIN;
+				if ((scrollX) > x && (scrollX) < xx) {//scrollOverCard
+					scrollAt = i;
+				}
 				i++;
 			}
+			return scrollAt;
+		};
+		
+		var sortStrategy1 = function(){
+			var i = 0;
+			
+			var offset = calculateOffset();
+			
+			var x= MARGIN;
+			for (index in cards) {
+				cards[index].moveTo(x,posy + MARGIN);
+				i++;
+				x = i*offset + MARGIN;
+				if ((scrollX+MARGIN) - x < 10) {
+					x += CARD_WIDTH;	
+				}
+				cards[index].pushUp();
+			}
+			
+			var scrollAt = getScrollIndex(offset);
+			
+			cards[scrollAt].moveTo((scrollAt*offset + MARGIN),posy + MARGIN);
+			cards[scrollAt].pushUp();
+			
+			for (var i = 1 ; i < scrollAt ; ) {
+				
+				var x = (i*offset) - (i / scrollAt)*offset;
+				cards[i].moveTo(x+MARGIN,posy + MARGIN);
+				i++;
+			}
+			
+			//cards[scrollAt].pushUp();
+			
+			var cantidad = cards.length - scrollAt;
+			for (var i = 1 ; i < cantidad; ) {
+				var x = (i*offset) + ( i / cantidad)*offset;
+				cards[i].moveTo(x+MARGIN,posy + MARGIN);
+				i++;
+			}
+		};
+		
+		
+		var sortStrategy2 = function(){	
+			
+			var offset = calculateOffset();
+			var scrollAt = getScrollIndex(offset);
+			if (scrollAt != scrollAtIndex) {
+			
+				console.log("Scroll en carta "+scrollAt);
+				scrollAtIndex = scrollAt;
+				
+				var leftGap = scrollX;
+				var leftAmountCards = scrollAt;
+				if (leftAmountCards >= 0){
+					leftAmountCards++;
+					var leftOffset = leftGap / leftAmountCards;
+					console.log('leftGap: '+ leftGap+ '    cards'+leftAmountCards+ '    leftOffset'+leftOffset);
+					for (var i = 0 ; i <= scrollAt ; ) {
+						var x = Math.floor( (i*leftOffset));
+						cards[i].moveTo(x+MARGIN,posy + MARGIN);
+						i++;
+					}
+				}
+				
+				var rightGap = innerWidth - MARGIN*2 - leftGap + CARD_WIDTH;
+				var rightAmountCards = cards.length - scrollAt;
+				if (rightAmountCards > 0){
+					var rightOffset = rightGap / (rightAmountCards);
+					console.log('rightGap: '+ rightGap+ '    cards'+rightAmountCards+ '    leftOffset'+rightOffset);
+					for (var i = scrollAt+1 ; i < cards.length; ) {
+						var aux = i - scrollAt;
+						var x = (scrollX + CARD_WIDTH) + Math.floor( (aux*rightOffset));
+						console.log("x: "+x);
+						if ( x > (getMaxWidth()))
+						   x = getMaxWidth();
+						cards[i].moveTo(x,posy + MARGIN);
+						i++;
+					}
+				}
+				
+				cards[scrollAt].moveTo((scrollX + MARGIN),posy + MARGIN);
+				cards[scrollAt].pushUp();
+				
+			}
+			
 		};
 		
 		this.removeCard = function(id) {
@@ -397,6 +544,8 @@
 				return true;
 			return false;				
 		};
+		
+		setTimeout(init,0);
 	};
 	
 	var Table = function() {
@@ -456,19 +605,16 @@
 			node = $("<div></div>");
 			node.attr("id","stack");
 			node.attr("class","stack");
+			node.attr("title","");
 			$('body').append(node);
 			node.css({'position': "absolute", 'z-index': 0, 'padding' : MARGIN+"px",'left': posx+"px", 'top' : posy+"px",'width': stackWidth+'px', 'height': stackHeight+'px', 'box-shadow': '0 0 5px rgba(30, 100, 13, 1)','background-color':"rgba(36, 129, 16, 0.5)"});
 			node.tooltip({
-				/*position: {
-					my: "center bottom-20",
-					at: "center top",
-					using: function( position, feedback ) {
-						$( this ).css( position );
-						$( "<div>" ).text("Hay "+cant+" cartas.").appendTo( this );
-					}
-				}*/
+				position: {
+					my: "center bottom",
+					at: "center top"
+				},
 				content: function() {
-					return $( "<div>" ).text("Hay "+cant+" cartas.").appendTo( this);;
+					return $( "<div>" ).text("Hay "+cant+" cartas.").appendTo( this).css({"font-size": "12px","text-align": "center"});
 				}
 			});
 			stackCardNode = $("<div></div>");
@@ -481,7 +627,8 @@
 			stackCardNode.mouseleave(function(){
 				$(this).css({'cursor':'auto'});
 			});
-			setTimeout(function(){$("#stack").append(stackCardNode);},0);
+			node.append(stackCardNode);
+			//setTimeout(function(){$("#stack").append(stackCardNode);},0);
 			
 			node.draggable({
 				//start: startDrag,
@@ -527,6 +674,10 @@
 			waitingResponse = arg;
 		};
 		
+		this.setCantidad = function(cantidad) {
+			cant = cantidad;
+		};
+		
 		var move = this.move = function(x,y) {
 			node.css({"left":x, "top" : y});
 			posx = x;
@@ -534,12 +685,12 @@
 		};
 	};
 	
-	//socket = io.connect('http://192.168.1.3');
-	socket = io.connect('http://localhost');
-	//socket = io.connect('http://facka-cards.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
+	socket = io.connect('http://192.168.1.6');
+	//socket = io.connect('http://localhost');
+	//socket = io.connect('http://facundo-cards.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
 	
-	socket.heartbeatInterval = 10; //cambie este valor de 20 a 10 para que ande mas rapido.
-	socket.heartbeatTimeout = 60; 
+	socket.heartbeatInterval = 5; //cambie este valor de 20 a 10 para que ande mas rapido.
+	socket.heartbeatTimeout = 10; 
 	
 	var tableHeight = 500;
 	var handHeight = 150;
@@ -736,6 +887,11 @@
 		stack.setWaitingResponse(false);
 	});
 	
+	socket.on("stackCardsCount", function(c){
+		console.log("Stack cards left = "+c);
+		stack.setCantidad(c);
+	});
+	
 	socket.on("stackEmpty", function(data){
 		stack.setEmpty();
 	});
@@ -801,9 +957,13 @@
 					socket.emit('cardDroppedOnHand', {card: { 'id': card.getId(), 'name': card.getName(), 'src': "", 'posx': ui.offset.left, 'posy': ui.offset.top, 'color': card.getColor()}, playerName : player});
 				}
 			},
+			over: function(event, ui ) {
+				console.log("Over hand!");
+			},
 			hoverClass: "overDroppable",
 			accept: ".tableCard",
 		});
+		
 		
 		$( "#login-dialog" ).dialog({
 		  autoOpen: false,
@@ -858,7 +1018,7 @@
 	</script>
 </head>
 <!-- background-color:rgb(36, 129, 16) -->
-<body style="padding: 5px; background-color:rgb(36, 129, 16)">
+<body style="margin: 0px; padding: 5px; background-color:rgb(36, 129, 16)">
 	<div id="login-dialog" title="Login">
 		<fieldset style="display: block">
 			<div>
@@ -878,7 +1038,7 @@
   			<option value="ElferRaus Master">ElferRaus Master</option>
 			<option value="ElferRaus">ElferRaus</option>
   			<option value="Phase10">Phase10</option>
-			<option value="Gran Dalmuti">Gran Dalmuti</option>
+			<option value="GranDalmuti">GranDalmuti</option>
 		</select>
 		<input id="startGameButton" name="Start" type="button" value="Start" style="display:none"/>
 		<p id="waitMessage">Por favor espere a que el administrador inicie el juego.</p>
@@ -887,7 +1047,18 @@
 		<div id="table" style="width : 1364px; height:500px; z-index: -2;">
 		</div>
 		<!--background-color:rgb(83, 43, 0)-->
+		
+		<!--TODO IMPLEMENTAR UN SELECTOR DE CARTAS QUE SEA HORIZONTAL O VERTICAL QUE PERMITA SCROLL Y UNA VEZ SELECCIONADA LA CARTA PARA ARRASTRAR
+		SE OCULTA EL SELECTOR MOSTRANDO LA MESA-->
+		<!---OPCION2: Poder separar las cartas haciendo scroll horizontal sobre las cartas de la mano. Al hacer click sobre una carta, se "eleva" 
+		quedando como draggeable, si se desea cancelar se vuelve a hacer click sobre la carta y la carta vuelve a la mano. Seria tipo un corrusel.
+		http://www.tripwiremagazine.com/2013/07/jquery-carousel.html
+		-->
 		<div id="hand" style="z-index: -1; width: 1364px; height: 150px; box-shadow: 0 0 5px rgba(100, 180, 30, 1)">
+			<!--div id="scroll-container" style="z-index: 30000; width: auto; height: 21px; padding: 3px">
+				<div id="scroll" style="z-index: 30000; width: 40px; height: 15px; box-shadow: 0 0 0px rgba(100, 180, 30, 1); border-radius: 5px;border:1px solid #a1a1a1">
+				</div>
+			</div-->
 		</div>
 	</div>
 </body>

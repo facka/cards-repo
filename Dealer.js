@@ -54,6 +54,10 @@ Dealer.prototype.isStackEmpty = function(){
 	return false;
 };
 
+Dealer.prototype.countStackCards = function(){
+	return this.stack.length;
+};
+
 Dealer.prototype.takeCardById = function(id) {
 	var found = false;
 	var i = 0;

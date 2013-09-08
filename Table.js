@@ -7,7 +7,10 @@ function Table(){
 	this.MIN_PLAYERS = 2;
 	this.cards = [];
 	this.totalPoints = {};
+	this.gameStarted = false;
 	this.lastZIndex = 1000;
+	this.dealed = false;
+	this.admin;
 		
 	Table.prototype.init = function(game) {
 		this.dealer = game.dealer;
@@ -105,13 +108,20 @@ function Table(){
 		return this.dealer;
 	};			
 	Table.prototype.deal = function() {
-		this.players = this.dealer.deal(this.players);
-		for (index in this.players) {
-			var sortedCards = this.dealer.sortCards(this.players[index].getCards());
-			this.players[index].setCards(sortedCards);
+		if (this.dealer) {
+			this.dealed = true;
+			this.players = this.dealer.deal(this.players);
+			for (index in this.players) {
+				var sortedCards = this.dealer.sortCards(this.players[index].getCards());
+				this.players[index].setCards(sortedCards);
+			}
+		}
+		else{
+			console.log("Error: it is not possible to deal because there is no dealer created.");
 		}
 	};
 	Table.prototype.clean = function() {
+		this.dealed = false;
 		for (player in this.players) {
 			this.players[player].removeCards();
 		}
@@ -150,6 +160,21 @@ function Table(){
 	};
 	Table.prototype.getTotalPoints = function(){
 		return this.totalPoints;
+	};
+	Table.prototype.setGameStarted = function(value) {
+		this.gameStarted = value;
+	};
+	Table.prototype.getGameStarted = function() {
+		return this.gameStarted;
+	};
+	Table.prototype.isDealed = function() {
+		return this.dealed;
+	};
+	Table.prototype.setAdmin = function(arg) {
+		this.admin = arg;
+	};
+	Table.prototype.getAdmin = function() {
+		return this.admin;
 	};
 };
 

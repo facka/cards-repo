@@ -1,10 +1,11 @@
-
-		
 var Player = require("./Player");
 var Card = require("./Card");
 var Dealer = require("./Dealer");
 var Table = require("./Table");
 var GameFactory = require("./GameFactory");
+var LoginEvent = require("./LoginModule");
+var Sockets = require("./Sockets");
+
 var app = require('express')()
   , server = require('http').createServer(app)
   , io = require('socket.io').listen(server);
@@ -33,17 +34,23 @@ app.get('/table', function (req, res) {
 
 var table = new Table();  
 var gameFactory = new GameFactory();
-var dealed = false;
-var admin;
-var gameStarted = false;
 var partidas=new Array();
-var playersSocket = {};
+var playerSockets = new Sockets();
 
-io.set('heartbeat interval', 10); //cambie este valor de 20 a 10 para que ande mas rapido.
-io.set('heartbeat timeout', 60); 
+io.set('heartbeat interval', 5); //cambie este valor de 20 a 10 para que ande mas rapido.
+io.set('heartbeat timeout', 10);  //determina el tiempo en el que el server se da cuenta que un cliente se desconecto
 io.set('transports',[ 'xhr-polling' ]);
+io.set("polling duration", 60);
 
 io.sockets.on('connection', function (socket) {
+
+  console.log("socket connected "+ socket.id);
+  
+  var loginEvent = new LoginEvent(socket, table, playerSockets);
+  
+  socket.on(loginEvent.getName(), function(data) {
+	loginEvent.action(data,socket);
+  });
 	
   socket.on('getPartidas', function (name, fn) {
 	fn(partidas);
@@ -52,7 +59,7 @@ io.sockets.on('connection', function (socket) {
   socket.on('createPartida', function (name) {
 	
   });
-  
+  /*
   socket.on('login', function (data) {
     console.log("Login user: "+data.player);
 	
@@ -65,7 +72,7 @@ io.sockets.on('connection', function (socket) {
 		var player = table.getPlayerByName(data.player);
 		if ( player.getPassword() == data.password) {
 			console.log("User Reconnected: "+socket.id);
-			playersSocket[socket.id] = data.player;
+			playerSockets.addSocket(socket, data.player);
 			socket.emit("handCards",{cards : player.getCards()});
 			var cards = table.getCards();
 			var cardsArray = [];
@@ -87,18 +94,18 @@ io.sockets.on('connection', function (socket) {
 			console.log("Table is full");
 		}
 		else {
-			if (gameStarted) {
+			if (table.getGameStarted()) {
 				socket.emit("gameAlreadyStarted",{});
 				console.log("Game Already Started");
 			}
 			else {
 				console.log("Successfull Login: "+data.player+" / "+data.password);
 				console.log("User connected: "+socket.id);
-				playersSocket[socket.id] = data.player;
+				playerSockets.addSocket(socket, data.player);
 				socket.emit("successfullLogin",{player : data.player});
 				var player = new Player(data.player,data.password);
-				if (!admin) {
-					admin = player;
+				if (!table.getAdmin()) {
+					table.setAdmin(player);
 					socket.emit("adminUser",{});
 				}
 				table.addPlayer(player);
@@ -119,12 +126,15 @@ io.sockets.on('connection', function (socket) {
 	}
   });
   
+  
+  
+  
   /*
   Starts the selected game
   */
   socket.on('startGame', function (data) {
-  	if (data.player == admin) {
-		gameStarted = true;
+  	if (data.player == table.getAdmin()) {
+		table.setGameStarted(true);
 		console.log("Creating game: "+data.game);
 		if (data.game == "ElferRaus Master") {
 			var game = gameFactory.create("ElferRaus Master");
@@ -135,9 +145,15 @@ io.sockets.on('connection', function (socket) {
 				var game = gameFactory.create("ElferRaus");
 				table.init(game);
 			}
-			else {
-				console.log("Game not implemented yet!!");
-				socket.emit("message","Game not implemented yet!");
+			else{
+				if (data.game == "GranDalmuti") {
+					var game = gameFactory.create("GranDalmuti");
+					table.init(game);
+				}
+				else {
+					console.log("Game not implemented yet!!");
+					socket.emit("message","Game not implemented yet!");
+				}
 			}
 		}
 		var playersName = [];
@@ -154,8 +170,7 @@ io.sockets.on('connection', function (socket) {
   
   
   socket.on('deal', function (data) {
-	if (!dealed){
-		dealed = true;
+	if (!table.isDealed()){
 		table.deal();
 		var players = table.getPlayers();
 		for( i in players){
@@ -164,16 +179,22 @@ io.sockets.on('connection', function (socket) {
 			socket.emit(name+"Cards",{cards : players[i].getCards()});	
 			socket.broadcast.emit(name+"Cards",{cards : players[i].getCards()});	
 		}
+		var count = table.getDealer().countStackCards();
+		socket.emit("stackCardsCount",count);	
+		socket.broadcast.emit("stackCardsCount",count);
 	}
   });  
 	socket.on('getStackCard', function (data) {
-		if (dealed){
+		if (table.isDealed()){
 			var card = table.getDealer().takeCardFromTop();
 			if (card) {
 				table.addCard(card);
 				socket.emit("stackCard",card);	
 				//TODO si es compartida la carta del pozo se reenvia
 				socket.broadcast.emit("stackCard",card);
+				var count = table.getDealer().countStackCards();
+				socket.emit("stackCardsCount",count);	
+				socket.broadcast.emit("stackCardsCount",count);
 				socket.emit("message","Player "+data.playerName+" took a card from the stack.");	
 				socket.broadcast.emit("message","Player "+data.playerName+" took a card from the stack.");	
 			}
@@ -241,7 +262,6 @@ io.sockets.on('connection', function (socket) {
   });
   
   socket.on('finishHand', function (data) {
-	dealed = false;
 	table.clean();
 	socket.emit("finishHand",data);	
 	socket.broadcast.emit("finishHand",data);	
@@ -250,7 +270,6 @@ io.sockets.on('connection', function (socket) {
   });
   
   socket.on('newGame', function (data) {
-	dealed = false;
 	table.clean();
 	socket.emit("newGame",{});	
 	socket.broadcast.emit("newGame",{});	
@@ -259,14 +278,15 @@ io.sockets.on('connection', function (socket) {
   socket.on('message', function (message) {
 	socket.emit("message",message);	
 	socket.broadcast.emit("message",message);	
-  }); 
+  });
   
   socket.on('disconnect', function () {
-    console.log("socket.id : "+socket.id);
-	if (playersSocket[socket.id]) {
-		socket.emit("message","User " + playersSocket[socket.id] + " has logged out");	
-		socket.broadcast.emit("message","User " + playersSocket[socket.id] + " has logged out");	
+	var playerName = playerSockets.getName(socket);
+	if (playerName) {
+		socket.emit("message","User " + playerName + " has logged out");	
+		socket.broadcast.emit("message","User " + playerName + " has logged out");	
 	}
+	playerSockets.removeSocket(socket.id);
 	
   });
   
