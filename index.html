@@ -405,7 +405,9 @@
 		var sortCards = this.sortCards = function() {
 			lastHandZIndex = 1000;
 			//sortStrategy1();
-			sortStrategy2();
+			if (cards.length > 0){
+				sortStrategy2();
+			}
 			
 		};
 		
@@ -685,9 +687,9 @@
 		};
 	};
 	
-	socket = io.connect('http://192.168.1.6');
+	//socket = io.connect('http://192.168.1.6');
 	//socket = io.connect('http://localhost');
-	//socket = io.connect('http://facundo-cards.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
+	socket = io.connect('http://facundocards2.jit.su/',{'connect timeout': 20000,'rememberTransport': false, 'transports' : [ 'xhr-polling' ]});
 	
 	socket.heartbeatInterval = 5; //cambie este valor de 20 a 10 para que ande mas rapido.
 	socket.heartbeatTimeout = 10; 

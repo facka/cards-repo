@@ -12,7 +12,7 @@ function LoginEvent(socket, table, sockets) {
 LoginEvent.prototype.getName = function() {
 	return "login";
 };
-LoginEvent.prototype.action = function(data, socket) {
+LoginEvent.prototype.action = function(data, socket){//, client) {
 	console.log("Login user: "+data.player + " , socket: "+ socket.id);
 	
 	if (data.player == "admin" && data.password == "admin") {
@@ -22,6 +22,25 @@ LoginEvent.prototype.action = function(data, socket) {
 	
 	if (_this.table.existsPlayer(data.player)){
 		var player = _this.table.getPlayerByName(data.player);
+		
+		
+		
+		
+		var options = {
+			type:'users',
+			username:data.player,
+			password:data.password
+		}
+		/*
+		client.createEntity(options, function (err, user) {
+			if (err){
+				console.log("User not created");
+			} else {
+				console.log("User saved!");
+			}
+		});*/
+		
+		
 		if ( player.getPassword() == data.password) {
 			console.log("User Reconnected: "+_this.socket.id);
 			_this.playerSockets.addSocket(socket, data.player);
@@ -31,7 +50,7 @@ LoginEvent.prototype.action = function(data, socket) {
 			for (i in cards){
 				cardsArray.push(cards[i].toJSON());
 			}
-			var count = _this.table.getDealer().countStackCards();
+			var count = (_this.table.getDealer() != null )? _this.table.getDealer().countStackCards() : 0;
 			socket.emit("stackCardsCount",count);	
 			
 			var playersName = [];

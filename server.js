@@ -6,6 +6,15 @@ var GameFactory = require("./GameFactory");
 var LoginEvent = require("./LoginModule");
 var Sockets = require("./Sockets");
 
+//var Usergrid = require("usergrid");
+
+/*var client = new Usergrid.client({
+    orgName:'facka',
+    appName:'cards',
+    logging: false, //optional - turn on logging, off by default
+});*/
+
+
 var app = require('express')()
   , server = require('http').createServer(app)
   , io = require('socket.io').listen(server);
@@ -49,7 +58,7 @@ io.sockets.on('connection', function (socket) {
   var loginEvent = new LoginEvent(socket, table, playerSockets);
   
   socket.on(loginEvent.getName(), function(data) {
-	loginEvent.action(data,socket);
+	loginEvent.action(data,socket);//,client);
   });
 	
   socket.on('getPartidas', function (name, fn) {
